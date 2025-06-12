@@ -1,0 +1,15 @@
+# Target labels
+ nuget-populate
+# Source files and their labels
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/nuget-populate
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/nuget-populate.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/nuget-populate-complete.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-build.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-configure.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-copyfile.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-download.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-install.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-mkdir.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-patch.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-test.rule
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-update.rule

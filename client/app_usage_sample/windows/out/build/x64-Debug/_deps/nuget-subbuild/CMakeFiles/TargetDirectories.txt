@@ -1,0 +1,3 @@
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/nuget-populate.dir
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/edit_cache.dir
+C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/rebuild_cache.dir

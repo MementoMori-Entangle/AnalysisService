@@ -1,0 +1,9 @@
+/.vscode
+
+# Ø–¾‘ŠÖ˜A
+ca.crt
+client.crt
+client.key
+keystore.p12
+server.crt
+server.key

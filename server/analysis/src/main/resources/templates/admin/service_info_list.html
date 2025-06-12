@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>サービス情報一覧</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-css-reset/dist/reset.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f7f7fa; margin: 0; }
+        .container { max-width: 1200px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+        h2 { font-size: 2rem; margin-bottom: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        th, td { padding: 0.7rem 1rem; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f0f0f5; text-align: left; }
+        tr:last-child td { border-bottom: none; }
+        .actions a, .actions button { margin-right: 0.5rem; }
+        .add-btn { background: #1976d2; color: #fff; border: none; padding: 0.5rem 1.2rem; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        .add-btn:hover { background: #125ea2; }
+        .actions .edit { color: #1976d2; text-decoration: none; }
+        .actions .delete { color: #d32f2f; text-decoration: none; }
+        .json-cell { font-size: 0.95em; color: #444; background: #f8f8fa; border-radius: 4px; padding: 0.3em 0.7em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>サービス情報一覧</h2>
+    <div style="text-align:right; margin-bottom:1em; display:flex; gap:1em; justify-content:flex-end;">
+        <a th:href="@{'/admin/service-info/new'}" class="add-btn">＋新規登録</a>
+        <a th:href="@{'/admin'}" class="add-btn" style="background:#888;">管理画面トップへ戻る</a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>解析種類</th>
+            <th>解析名</th>
+            <th>対象データ処理情報(JSON)</th>
+            <th>操作</th>
+            <th>テンプレート画像登録</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="info : ${serviceInfoList}">
+            <td th:text="${info.id}"></td>
+            <td th:text="${info.analysisType}"></td>
+            <td th:text="${info.analysisName}"></td>
+            <td class="json-cell" th:text="${info.dataProcessInfoJson}"></td>
+            <td class="actions">
+                <a th:href="@{'/admin/service-info/edit/' + ${info.id}}" class="edit">編集</a>
+                <a th:href="@{'/admin/service-info/delete/' + ${info.id}}" class="delete" onclick="return confirm('本当に削除しますか？');">削除</a>
+            </td>
+            <td>
+                <a th:if="${info.templateDirPath != null and !#strings.isEmpty(info.templateDirPath)}" th:href="@{'/admin/service-info/template-images?dir=' + ${info.templateDirPath}}" class="add-btn" style="background:#43a047;">画像登録</a>
+            </td>
+        </tr>
+        <tr th:if="${serviceInfoList.size()} == 0">
+            <td colspan="6" style="text-align:center; color:#888;">登録されたサービス情報がありません</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

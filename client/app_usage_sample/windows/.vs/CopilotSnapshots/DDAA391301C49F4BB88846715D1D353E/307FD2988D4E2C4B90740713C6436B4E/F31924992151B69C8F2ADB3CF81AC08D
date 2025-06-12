@@ -1,0 +1,34 @@
+﻿using System;
+using System.IO.Pipes;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace GrpcBridge
+{
+    class Program
+    {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine("[GrpcBridge] NamedPipeサーバー起動");
+            var pipeName = "FlutterGrpcPipe";
+            while (true)
+            {
+                using (var server = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+                {
+                    await server.WaitForConnectionAsync();
+                    Console.WriteLine("[GrpcBridge] Flutterから接続あり");
+                    using (var reader = new StreamReader(server, Encoding.UTF8, false, 4096, true))
+                    using (var writer = new StreamWriter(server, Encoding.UTF8, 4096, true) { AutoFlush = true })
+                    {
+                        var request = await reader.ReadLineAsync();
+                        Console.WriteLine($"[GrpcBridge] 受信: {request}");
+                        // TODO: ここでgRPC通信を実装し、結果をresponseに格納
+                        var response = $"Echo: {request}";
+                        await writer.WriteLineAsync(response);
+                        Console.WriteLine($"[GrpcBridge] 送信: {response}");
+                    }
+                }
+            }
+        }
+    }
+}

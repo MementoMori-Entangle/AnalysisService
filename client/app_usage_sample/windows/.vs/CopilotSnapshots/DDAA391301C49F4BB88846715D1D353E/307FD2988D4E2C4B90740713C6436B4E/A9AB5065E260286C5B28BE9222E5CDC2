@@ -1,0 +1,87 @@
+﻿using System;
+using System.IO.Pipes;
+using System.Text;
+using System.Threading.Tasks;
+using System.IO;
+using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
+using Grpc.Net.Client;
+using analysis;
+
+namespace GrpcBridge
+{
+    class Program
+    {
+        static async Task Main(string[] args)
+        {
+            Console.WriteLine("[GrpcBridge] NamedPipeサーバー起動");
+            var pipeName = "FlutterGrpcPipe";
+            while (true)
+            {
+                using (var server = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+                {
+                    await server.WaitForConnectionAsync();
+                    Console.WriteLine("[GrpcBridge] Flutterから接続あり");
+                    using (var reader = new StreamReader(server, Encoding.UTF8, false, 4096, true))
+                    using (var writer = new StreamWriter(server, Encoding.UTF8, 4096, true) { AutoFlush = true })
+                    {
+                        var request = await reader.ReadLineAsync();
+                        Console.WriteLine($"[GrpcBridge] 受信: {request}");
+                        // gRPC通信処理
+                        var response = await CallGrpcWithMtlsAsync(request);
+                        await writer.WriteLineAsync(response);
+                        Console.WriteLine($"[GrpcBridge] 送信: {response}");
+                    }
+                }
+            }
+        }
+
+        static async Task<string> CallGrpcWithMtlsAsync(string request)
+        {
+            // 証明書パス
+            string assetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "assets");
+            string caCrtPath = Path.GetFullPath(Path.Combine(assetDir, "ca.crt"));
+            string clientCrtPath = Path.GetFullPath(Path.Combine(assetDir, "client.crt"));
+            string clientKeyPath = Path.GetFullPath(Path.Combine(assetDir, "client.key"));
+
+            // PEM→PFX変換
+            var clientCert = PemToX509Certificate2(clientCrtPath, clientKeyPath);
+            var caCert = new X509Certificate2(caCrtPath);
+
+            var handler = new HttpClientHandler();
+            handler.ClientCertificates.Add(clientCert);
+            handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, chain, errors) =>
+            {
+                // CA証明書でサーバー検証
+                chain.ChainPolicy.ExtraStore.Add(caCert);
+                chain.ChainPolicy.VerificationFlags = System.Security.Cryptography.X509Certificates.X509VerificationFlags.AllowUnknownCertificateAuthority;
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                bool isValid = chain.Build(cert);
+                return isValid;
+            };
+
+            var channel = GrpcChannel.ForAddress("https://localhost:9090", new GrpcChannelOptions { HttpHandler = handler });
+            var client = new ServiceInfoService.ServiceInfoServiceClient(channel);
+            try
+            {
+                // サンプル: ServiceInfoRequestを送信
+                var grpcRequest = new ServiceInfoRequest { AccessKey = request };
+                var grpcResponse = await client.GetAvailableServicesAsync(grpcRequest);
+                return grpcResponse.ToString();
+            }
+            catch (Exception ex)
+            {
+                return $"gRPC error: {ex.Message}";
+            }
+        }
+
+        // PEM証明書＋秘密鍵→X509Certificate2
+        static X509Certificate2 PemToX509Certificate2(string certPath, string keyPath)
+        {
+            var certPem = File.ReadAllText(certPath);
+            var keyPem = File.ReadAllText(keyPath);
+            using var cert = X509Certificate2.CreateFromPem(certPem, keyPem);
+            return new X509Certificate2(cert.Export(X509ContentType.Pfx));
+        }
+    }
+}

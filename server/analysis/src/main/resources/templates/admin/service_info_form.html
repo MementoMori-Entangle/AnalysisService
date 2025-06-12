@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${mode == 'edit'} ? 'サービス情報編集' : 'サービス情報登録'">サービス情報登録・編集</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-css-reset/dist/reset.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f7f7fa; margin: 0; }
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+        form { display: flex; flex-direction: column; gap: 1.2em; }
+        label { font-weight: bold; }
+        input, select, textarea { padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+        textarea { min-height: 100px; font-family: monospace; }
+        .actions { display: flex; gap: 1em; margin-top: 1.5em; }
+        .btn { background: #1976d2; color: #fff; border: none; padding: 0.5em 1.5em; border-radius: 4px; font-size: 1em; cursor: pointer; transition: background 0.2s; }
+        .btn:hover { background: #125ea2; }
+        .cancel { background: #aaa; }
+        .cancel:hover { background: #888; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 th:text="${mode == 'edit'} ? 'サービス情報編集' : 'サービス情報登録'"></h2>
+    <form th:action="@{${mode == 'edit'} ? '/admin/service-info/edit/' + ${serviceInfo.id} : '/admin/service-info/new'}" method="post">
+        <div>
+            <label for="analysisType">解析種類</label>
+            <select id="analysisType" name="analysisType" required th:value="${serviceInfo.analysisType}" onchange="updateJsonExample()">
+                <option value="">--選択--</option>
+                <option th:each="type : ${analysisTypes}"
+                        th:value="${type.id}"
+                        th:text="${type.label}"
+                        th:data-jsonexample="${type.jsonExample}"
+                        th:selected="${serviceInfo.analysisType} == ${type.id}"></option>
+            </select>
+        </div>
+        <div>
+            <label for="analysisName">解析名</label>
+            <input type="text" id="analysisName" name="analysisName" th:value="${serviceInfo.analysisName}" required />
+        </div>
+        <div>
+            <label for="dataProcessInfoJson">対象データ処理情報 (JSON)</label>
+            <div style="margin-bottom:0.5em; color:#555; font-size:0.95em;">
+                <strong>例:</strong>
+                <pre id="jsonExampleText" style="background:#f8f8fa; border-radius:4px; padding:0.5em 1em; margin:0;">{ "templateDirPath": "/path/to/dir", "templateDirName": "dir1", "threshold": 0.8, "enabled": true }</pre>
+            </div>
+            <textarea id="dataProcessInfoJson" name="dataProcessInfoJson" required th:text="${serviceInfo.dataProcessInfoJson}"></textarea>
+        </div>
+        <script>
+        function updateJsonExample() {
+            var select = document.getElementById('analysisType');
+            var selected = select.options[select.selectedIndex];
+            var example = selected.getAttribute('data-jsonexample');
+            document.getElementById('jsonExampleText').textContent = example || '';
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            updateJsonExample();
+        });
+        </script>
+        <div class="actions">
+            <button type="submit" class="btn">保存</button>
+            <a th:href="@{'/admin/service-info'}" class="btn cancel">キャンセル</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

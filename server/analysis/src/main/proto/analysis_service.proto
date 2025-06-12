@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package analysis;
+
+// サービス情報取得用
+service ServiceInfoService {
+  // 利用可能な解析サービス情報を取得
+  rpc GetAvailableServices (ServiceInfoRequest) returns (ServiceInfoResponse);
+}
+
+// 解析リクエスト用
+service AnalysisService {
+  // 画像解析リクエスト
+  rpc Analyze (AnalysisRequest) returns (AnalysisResponse);
+}
+
+// サービス情報取得リクエスト
+message ServiceInfoRequest {
+  string access_key = 1;
+}
+
+// サービス情報レスポンス
+message ServiceInfoResponse {
+  repeated AnalysisType analysis_types = 1;
+}
+
+// 解析種類
+message AnalysisType {
+  string type = 1; // 例: pattern_matching
+  string display_name = 2; // 例: パターンマッチング
+  repeated TemplateInfo templates = 3;
+}
+
+// テンプレート情報
+message TemplateInfo {
+  string template_name = 1;
+  string template_dir = 2;
+  bool enabled = 3;
+  double threshold = 4;
+}
+
+// 解析リクエスト
+message AnalysisRequest {
+  string analysis_type = 1;
+  string template_name = 2;
+  string image_base64 = 3;
+  string access_key = 4;
+}
+
+// 解析レスポンス
+message AnalysisResponse {
+  string analysis_type = 1;
+  string template_name = 2;
+  repeated MatchResult results = 3;
+  string message = 4;
+}
+
+// マッチング結果
+message MatchResult {
+  string file_name = 1;
+  int64 file_size = 2;
+  int32 width = 3;
+  int32 height = 4;
+  double similarity = 5;
+  string image_base64 = 6;
+}

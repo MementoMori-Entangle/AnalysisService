@@ -1,0 +1,24 @@
+# ninja log v6
+1218	1279	7712432714098154	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-done	74eb423df6747db9
+4	56	7712432701855352	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-mkdir	43709560776db7b5
+4	56	7712432701855352	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-mkdir	43709560776db7b5
+1175	1218	7712432713492162	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-test	8549e35d753c816e
+882	929	7712432710592180	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-update	fc0f1f3f3a9d098c
+56	881	7712432710122193	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-download	b929f03d15398b3d
+56	881	7712432710122193	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-download	b929f03d15398b3d
+929	985	7712432711142192	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-patch	51c2d988721bfe20
+882	929	7712432710592180	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-update	fc0f1f3f3a9d098c
+1132	1175	7712432713052175	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-install	54d3385e45db4d8
+929	985	7712432711142192	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-patch	51c2d988721bfe20
+985	1046	7712432711772193	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-copyfile	7ab5fb20b0477f23
+985	1046	7712432711772193	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-src/nuget.exe	7ab5fb20b0477f23
+985	1046	7712432711772193	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-copyfile	7ab5fb20b0477f23
+1046	1089	7712432712202177	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-configure	3efa0729e9057d82
+1046	1089	7712432712202177	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-configure	3efa0729e9057d82
+1089	1131	7712432712622256	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-build	a94d2c9a0a183b04
+1089	1131	7712432712622256	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-build	a94d2c9a0a183b04
+1132	1175	7712432713052175	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-install	54d3385e45db4d8
+1175	1218	7712432713492162	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-test	8549e35d753c816e
+1218	1279	7712432714098154	CMakeFiles/nuget-populate-complete	74eb423df6747db9
+1218	1279	7712432714098154	nuget-populate-prefix/src/nuget-populate-stamp/nuget-populate-done	74eb423df6747db9
+1218	1279	7712432714098154	C:/workspace/AnalysisService/client/app_usage_sample/windows/out/build/x64-Debug/_deps/nuget-subbuild/CMakeFiles/nuget-populate-complete	74eb423df6747db9

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>アクセスキー登録・編集</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f7f7fa; margin: 0; }
+        .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+        form { display: flex; flex-direction: column; gap: 1.2em; }
+        label { font-weight: bold; }
+        input[type="text"], input[type="datetime-local"] { padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+        .form-actions { display: flex; gap: 1em; justify-content: flex-end; }
+        .btn { background: #1976d2; color: #fff; border: none; padding: 0.5em 1.2em; border-radius: 4px; font-size: 1em; cursor: pointer; transition: background 0.2s; }
+        .btn:hover { background: #125ea2; }
+        .btn.cancel { background: #888; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 th:text="${accessKey.id == null} ? 'アクセスキー新規登録' : 'アクセスキー編集'"></h2>
+    <form th:action="${accessKey.id == null} ? @{/admin/access-keys} : @{'/admin/access-keys/update/' + ${accessKey.id}}" method="post" th:object="${accessKey}">
+        <input type="hidden" th:field="*{id}" />
+        <div>
+            <label for="accessKey">キー</label>
+            <div style="display:flex; gap:0.5em; align-items:center;">
+                <input type="text" id="accessKey" th:field="*{accessKey}" required maxlength="255" style="flex:1;" />
+                <button type="button" class="btn" onclick="generateKey()">自動生成</button>
+            </div>
+        </div>
+        <div>
+            <label for="enabled">有効</label>
+            <input type="checkbox" id="enabled" th:field="*{enabled}" />
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn">保存</button>
+            <a th:href="@{'/admin/access-keys'}" class="btn cancel">キャンセル</a>
+        </div>
+    </form>
+</div>
+<script>
+function generateKey() {
+    fetch('/admin/access-keys/generate')
+        .then(res => res.text())
+        .then(key => {
+            document.getElementById('accessKey').value = key;
+        });
+}
+</script>
+</body>
+</html>

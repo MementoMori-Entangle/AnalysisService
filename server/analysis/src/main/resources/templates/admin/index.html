@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">管理画面トップ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2em;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2em;
+        }
+        h1 {
+            font-size: 2.2rem;
+            color: #1976d2;
+            margin: 0;
+            letter-spacing: 0.05em;
+        }
+        a.logout-btn {
+            color: #fff;
+            background: #d32f2f;
+            padding: 0.5em 1.2em;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        section {
+            margin-bottom: 2em;
+        }
+        p {
+            font-size: 1.1em;
+            color: #444;
+        }
+        .card {
+            flex: 1 1 300px;
+            display: block;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #1976d233;
+            padding: 2em 1.5em;
+            text-decoration: none;
+            transition: box-shadow 0.2s;
+            min-width: 260px;
+        }
+        .card:hover {
+            box-shadow: 0 4px 16px #1976d233;
+        }
+        .card div {
+            margin-bottom: 0.5em;
+        }
+        .card .emoji {
+            font-size: 2.5em;
+            color: #1976d2;
+        }
+        .card .title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #222;
+        }
+        .card .description {
+            color: #666;
+        }
+        .card-grid {
+            display: flex;
+            gap: 2em;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>管理画面トップ</h1>
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" class="logout-btn">ログアウト</button>
+        </form>
+    </header>
+    <section>
+        <p>ようこそ。</p>
+    </section>
+    <section class="card-grid">
+        <a href="/admin/service-info" class="card">
+            <div class="emoji">🗂️</div>
+            <div class="title">サービス情報一覧・管理</div>
+            <div class="description">gRPC連携用サービス情報の登録・編集・削除</div>
+        </a>
+        <a href="/admin/analysis-test" class="card">
+            <div class="emoji">🖼️</div>
+            <div class="title">画像解析テスト</div>
+            <div class="description">gRPC解析APIのテスト・デバッグ</div>
+        </a>
+        <a href="/admin/access-keys" class="card">
+            <div class="emoji">🔑</div>
+            <div class="title">アクセスキー管理</div>
+            <div class="description">クライアント/管理画面用アクセスキーの登録・編集・削除</div>
+        </a>
+        <!-- 他の管理機能カードもここに追加可能 -->
+    </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 75,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 78,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 81,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 85,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 92,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 99,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 102,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug",
+			"paths" : 
+			[
+				"runner/app_usage_sample.exe"
+			],
+			"targetId" : "app_usage_sample::@056c4f61b0156d1d9b06",
+			"targetIndex" : 0,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug/data",
+			"paths" : 
+			[
+				"flutter/ephemeral/icudtl.dat"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug",
+			"paths" : 
+			[
+				"flutter/ephemeral/flutter_windows.dll"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug",
+			"paths" : 
+			[
+				"out/build/x64-Debug/plugins/local_auth_windows/local_auth_windows_plugin.dll"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 5,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug",
+			"paths" : 
+			[
+				{
+					"from" : "C:/workspace/AnalysisService/client/app_usage_sample/build/native_assets/windows",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		},
+		{
+			"backtrace" : 6,
+			"component" : "Runtime",
+			"type" : "code"
+		},
+		{
+			"backtrace" : 7,
+			"component" : "Runtime",
+			"destination" : "C:/workspace/AnalysisService/client/app_usage_sample/windows/out/install/x64-Debug/data",
+			"paths" : 
+			[
+				"C:/workspace/AnalysisService/client/app_usage_sample/build//flutter_assets"
+			],
+			"type" : "directory"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}
