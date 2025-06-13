@@ -20,6 +20,12 @@ GrpcClient createGrpcClient() {
       grpcUrl: AppConfig.bridgeGrpcUrl,
       certDir: AppConfig.bridgeCertDir,
     );
+  } else if (Platform.isLinux) {
+    return GrpcBridgeClient(
+      bridgeExePath: AppConfig.linuxBridgeExePath,
+      grpcUrl: AppConfig.bridgeGrpcUrl,
+      certDir: AppConfig.bridgeCertDir,
+    );
   } else {
     return GrpcDirectClient();
   }

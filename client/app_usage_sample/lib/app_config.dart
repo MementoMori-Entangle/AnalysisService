@@ -17,6 +17,8 @@ class AppConfig {
   // Windowsネイティブ mTLS対応 GrpcBridge.exeのパス
   static const String bridgeExePath =
       'windows/windows/GrpcBridge/bin/Release/net9.0/GrpcBridge.exe';
+  // Linuxネイティブ mTLS対応 GrpcBridge 実行ファイルのパス
+  static const String linuxBridgeExePath = '/usr/local/bin/GrpcBridge';
 
   // アプリタイトル
   static const String appTitle = 'App Demo';
