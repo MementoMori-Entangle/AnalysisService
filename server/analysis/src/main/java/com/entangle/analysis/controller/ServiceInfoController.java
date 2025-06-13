@@ -84,12 +84,15 @@ public class ServiceInfoController {
             ArrayList<AnalysisType> result = new ArrayList<>();
             if (data != null && data.containsKey("analysis-types")) {
                 for (Object obj : (Iterable<?>)data.get("analysis-types")) {
-                    LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>)obj;
-                    AnalysisType t = new AnalysisType();
-                    t.id = (String)map.get("id");
-                    t.label = (String)map.get("label");
-                    t.jsonExample = (String)map.get("jsonExample");
-                    result.add(t);
+                    if (obj instanceof LinkedHashMap) {
+                        @SuppressWarnings("unchecked")
+                        LinkedHashMap<String, Object> map = (LinkedHashMap<String, Object>) obj;
+                        AnalysisType t = new AnalysisType();
+                        t.id = (String)map.get("id");
+                        t.label = (String)map.get("label");
+                        t.jsonExample = (String)map.get("jsonExample");
+                        result.add(t);
+                    }
                 }
             }
             return result;

@@ -6,10 +6,11 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.protobuf") version "0.9.4"
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 android {
-    namespace = "com.example.app_usage_sample"
+    namespace = "com.example.appusagesample"
     compileSdk = flutter.targetSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -24,7 +25,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.app_usage_sample"
+        applicationId = "com.example.appusagesample"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -86,16 +87,19 @@ flutter {
     source = "../.."
 }
 
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint("1.2.1")
+    }
+}
+
 // gRPC/protobuf依存追加
 dependencies {
     implementation("io.grpc:grpc-okhttp:1.63.0")
     implementation("io.grpc:grpc-protobuf:1.63.0")
     implementation("io.grpc:grpc-stub:1.63.0")
-    implementation("io.grpc:grpc-netty-shaded:1.63.0")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.77")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
-    implementation("org.conscrypt:conscrypt-android:2.5.2")
 }
 
 protobuf {
