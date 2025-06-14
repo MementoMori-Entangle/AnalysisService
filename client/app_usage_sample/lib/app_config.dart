@@ -10,13 +10,17 @@ class AppConfig {
   // Web用gRPCサーバーURL (プロキシー経由 http port 8080, https port 9443)
   static const String webGrpcUrl = 'https://localhost:9443';
   // 証明書ディレクトリ（assets）
-  static const String bridgeCertDir =
+  static const String bridgeWindowsCertDir =
       'C:/workspace/AnalysisService/client/app_usage_sample/assets';
+  static const String bridgeLinuxCertDir =
+      '/home/entangle/workspace/AnalysisService/client/app_usage_sample/assets';
   // gRPC アクセスキー (DBに登録されていること)
   static const String defaultAccessKey = 'E84joLUDh7N8liBZihxwyWOmqcfiGreH';
   // Windowsネイティブ mTLS対応 GrpcBridge.exeのパス
   static const String bridgeExePath =
       'windows/windows/GrpcBridge/bin/Release/net9.0/GrpcBridge.exe';
+  // Linuxネイティブ mTLS対応 GrpcBridge 実行ファイルのパス
+  static const String linuxBridgeExePath = '/usr/local/bin/GrpcBridge';
 
   // アプリタイトル
   static const String appTitle = 'App Demo';

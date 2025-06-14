@@ -18,7 +18,13 @@ GrpcClient createGrpcClient() {
     return GrpcBridgeClient(
       bridgeExePath: AppConfig.bridgeExePath,
       grpcUrl: AppConfig.bridgeGrpcUrl,
-      certDir: AppConfig.bridgeCertDir,
+      certDir: AppConfig.bridgeWindowsCertDir,
+    );
+  } else if (Platform.isLinux) {
+    return GrpcBridgeClient(
+      bridgeExePath: AppConfig.linuxBridgeExePath,
+      grpcUrl: AppConfig.bridgeGrpcUrl,
+      certDir: AppConfig.bridgeLinuxCertDir,
     );
   } else {
     return GrpcDirectClient();
@@ -27,7 +33,7 @@ GrpcClient createGrpcClient() {
 
 class GrpcDirectClient implements GrpcClient {
   final String grpcUrl = AppConfig.bridgeGrpcUrl;
-  final String certDir = AppConfig.bridgeCertDir;
+  final String certDir = AppConfig.bridgeLinuxCertDir;
 
   @override
   Future<void> start() async {}
