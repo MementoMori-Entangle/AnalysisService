@@ -139,6 +139,11 @@
 			<artifactId>flyway-mysql</artifactId>
 			<version>10.14.0</version>
 		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+			<version>10.14.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -196,6 +201,11 @@
 				<configuration>
 					<mainClass>com.entangle.analysis.util.BCryptHashGenerator</mainClass>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>10.14.0</version>
 			</plugin>
 		</plugins>
 	</build>
