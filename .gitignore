@@ -1,9 +1,19 @@
 /.vscode
 
-# �ؖ����֘A
+# 証明書ファイル除外
 ca.crt
 client.crt
 client.key
 keystore.p12
 server.crt
 server.key
+
+# Linux/macOS/Windowsで自動生成されるファイルを除外
+client/app_usage_sample/linux/flutter/generated_plugin_registrant.cc
+client/app_usage_sample/linux/flutter/generated_plugin_registrant.h
+client/app_usage_sample/linux/flutter/generated_plugins.cmake
+client/app_usage_sample/macos/Flutter/GeneratedPluginRegistrant.swift
+client/app_usage_sample/windows/flutter/generated_plugin_registrant.cc
+client/app_usage_sample/windows/flutter/generated_plugin_registrant.h
+client/app_usage_sample/windows/flutter/generated_plugins.cmake
+client/app_usage_sample/pubspec.lock
