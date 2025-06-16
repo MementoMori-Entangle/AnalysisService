@@ -3,4 +3,8 @@ analysis-types:
   - id: pattern-matching
     label: パターンマッチング
     jsonExample: |
-      { "templateDirPath": "/path/to/dir", "templateDirName": "dir1", "threshold": 0.8, "enabled": true }
+      { "templateDirPath": "/path/to/dir", "templateDirName": "dir1", "threshold": 0.8, "release": true, "enabled": true }
+  - id: image-division
+    label: 画像分割
+    jsonExample: |
+      { "tempDirPath": "/path/to/dir", "divisionName": "4Division", "divisionNum": 4, "encryption": true, "release": true, "enabled": true }

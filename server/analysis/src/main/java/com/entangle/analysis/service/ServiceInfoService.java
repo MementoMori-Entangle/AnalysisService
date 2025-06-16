@@ -25,4 +25,7 @@ public class ServiceInfoService {
     public void deleteById(Long id) {
         repository.deleteById(id);
     }
+    public List<ServiceInfo> search(String analysisType, String analysisName) {
+        return repository.findByAnalysisTypeContainingAndAnalysisNameContaining(analysisType, analysisName);
+    }
 }

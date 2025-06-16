@@ -1,11 +1,19 @@
 package com.entangle.analysis.controller;
 
-import com.entangle.analysis.AnalysisServiceImpl;
-import com.entangle.analysis.repository.LogRepository;
-import com.entangle.analysis.entity.Log;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+
+import javax.net.ssl.SSLException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,22 +21,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
-import java.util.List;
-import java.util.Base64;
-import java.io.IOException;
-import analysis.ServiceInfoServiceGrpc;
+import com.entangle.analysis.entity.Log;
+import com.entangle.analysis.grpc.AnalysisServiceImpl;
+import com.entangle.analysis.repository.LogRepository;
+
+import analysis.AnalysisServiceImageDivOuterClass;
 import analysis.AnalysisServiceOuterClass;
+import analysis.ImageDivServiceGrpc;
+import analysis.ServiceInfoServiceGrpc;
 import io.grpc.ManagedChannel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
-import java.util.Locale;
-import javax.net.ssl.SSLException;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping("/admin/analysis-test")
@@ -55,6 +60,8 @@ public class AnalysisTestController {
     private String clientKeyPath;
     @Value("${custom.grpc.client.port}")
     private int grpcPort;
+    @Value("${custom.grpc.client.max-inbound-message-size}")
+    private int grpcClientMaxInboundMessageSize;
 
     @GetMapping("")
     public String showTestForm(Model model, HttpServletRequest request) {
@@ -67,6 +74,7 @@ public class AnalysisTestController {
         Locale locale = request.getLocale();
         try {
             channel = NettyChannelBuilder.forAddress("localhost", grpcPort)
+                .maxInboundMessageSize(grpcClientMaxInboundMessageSize)
                 .sslContext(
                     GrpcSslContexts.forClient()
                         .trustManager(caCertResource.getFile())
@@ -90,7 +98,7 @@ public class AnalysisTestController {
             if (channel != null) channel.shutdown();
         }
         // 解析種別リストは「type: pattern-matching」「displayName: マッチングA」などが入っている
-        // クライアントはdisplayName（例: マッチングA）を選択肢として表示し、値としても送信する
+        // クライアントはdisplayName（例: マッチングA）を選択肢として表示し、analysisName値としても送信する
         model.addAttribute("analysisTypes", analysisTypes);
         model.addAttribute("accessKey", defaultAccessKey);
         logAction(request, messageSource.getMessage("analysis.test.screen", null, request.getLocale()),
@@ -99,12 +107,11 @@ public class AnalysisTestController {
     }
 
     @PostMapping("")
-    public String runAnalysis(@RequestParam("analysisType") String analysisType,
+    public String runAnalysis(@RequestParam("analysisName") String analysisName,
                              @RequestParam("imageFile") MultipartFile imageFile,
                              @RequestParam(value = "accessKey", required = false) String accessKey,
                              Model model, HttpServletRequest request) throws IOException {
         String useAccessKey = (accessKey != null && !accessKey.isEmpty()) ? accessKey : defaultAccessKey;
-        String selectedType = analysisType;
         byte[] imageBytes = imageFile.getBytes();
         String imageBase64 = Base64.getEncoder().encodeToString(imageBytes);
         int imageWidth = 0;
@@ -125,7 +132,7 @@ public class AnalysisTestController {
         model.addAttribute("imageBase64", imageBase64);
         // ここでanalysisTypeには「マッチングA」などのdisplayNameが入る
         AnalysisServiceOuterClass.AnalysisRequest req = AnalysisServiceOuterClass.AnalysisRequest.newBuilder()
-                .setAnalysisType(selectedType) // displayNameをそのまま送信
+                .setAnalysisName(analysisName)
                 .setTemplateName("")
                 .setImageBase64(imageBase64)
                 .setAccessKey(useAccessKey)
@@ -152,6 +159,7 @@ public class AnalysisTestController {
         List<AnalysisServiceOuterClass.AnalysisType> analysisTypes = new java.util.ArrayList<>();
         try {
             channel2 = NettyChannelBuilder.forAddress("localhost", grpcPort)
+                .maxInboundMessageSize(grpcClientMaxInboundMessageSize)
                 .sslContext(
                     GrpcSslContexts.forClient()
                         .trustManager(caCertResource.getFile())
@@ -175,14 +183,116 @@ public class AnalysisTestController {
             if (channel2 != null) channel2.shutdown();
         }
         model.addAttribute("analysisTypes", analysisTypes);
-        model.addAttribute("selectedAnalysisType", selectedType);
+        model.addAttribute("selectedAnalysisType", analysisName);
         model.addAttribute("results", responseHolder[0] != null ? responseHolder[0].getResultsList() : null);
         model.addAttribute("accessKey", useAccessKey);
         logAction(request, messageSource.getMessage("analysis.test.screen", null, request.getLocale()),
-                  messageSource.getMessage("analysis.test.run.action", new Object[]{selectedType, imageFile.getOriginalFilename()}, request.getLocale()));
+                  messageSource.getMessage("analysis.test.run.action", new Object[]{analysisName, imageFile.getOriginalFilename()}, request.getLocale()));
         return "admin/analysis_test_form";
     }
     
+    @PostMapping("/image-division")
+    public String runImageDivision(@RequestParam("imageFile") MultipartFile imageFile,
+                                  @RequestParam(value = "embedData", required = false) String embedData,
+                                  @RequestParam(value = "embedDataType", required = false, defaultValue = "TEXT") String embedDataType,
+                                  @RequestParam(value = "embedImageFile", required = false) MultipartFile embedImageFile,
+                                  @RequestParam(value = "accessKey", required = false) String accessKey,
+                                  @RequestParam("analysisName") String analysisName,
+                                  Model model, HttpServletRequest request) throws IOException {
+        String useAccessKey = (accessKey != null && !accessKey.isEmpty()) ? accessKey : defaultAccessKey;
+        byte[] imageBytes = imageFile.getBytes();
+        String imageBase64 = Base64.getEncoder().encodeToString(imageBytes);
+        String embedDataToSend = "";
+        if ("IMAGE".equalsIgnoreCase(embedDataType) && embedImageFile != null && !embedImageFile.isEmpty()) {
+            byte[] embedImageBytes = embedImageFile.getBytes();
+            embedDataToSend = Base64.getEncoder().encodeToString(embedImageBytes);
+        } else if (embedData != null) {
+            embedDataToSend = embedData;
+        }
+        AnalysisServiceImageDivOuterClass.ImageDivEmbedRequest.Builder reqBuilder = AnalysisServiceImageDivOuterClass.ImageDivEmbedRequest.newBuilder()
+                .setAccessKey(useAccessKey)
+                .setOriginalImageBase64(imageBase64)
+                .setEmbedData(embedDataToSend)
+                .setAnalysisName(analysisName);
+        if ("IMAGE".equalsIgnoreCase(embedDataType)) {
+            reqBuilder.setEmbedDataType(AnalysisServiceImageDivOuterClass.EmbedDataType.IMAGE);
+        } else {
+            reqBuilder.setEmbedDataType(AnalysisServiceImageDivOuterClass.EmbedDataType.TEXT);
+        }
+        AnalysisServiceImageDivOuterClass.ImageDivEmbedRequest req = reqBuilder.build();
+        // gRPC証明書リソース取得
+        Resource caCertResource = resourceLoader.getResource(caCertPath);
+        Resource clientCertResource = resourceLoader.getResource(clientCertPath);
+        Resource clientKeyResource = resourceLoader.getResource(clientKeyPath);
+        // gRPC呼び出し
+        ManagedChannel channel = null;
+        AnalysisServiceImageDivOuterClass.ImageDivEmbedResponse response = null;
+        try {
+            channel = NettyChannelBuilder.forAddress("localhost", grpcPort)
+                .maxInboundMessageSize(grpcClientMaxInboundMessageSize)
+                .sslContext(
+                    GrpcSslContexts.forClient()
+                        .trustManager(caCertResource.getFile())
+                        .keyManager(clientCertResource.getFile(), clientKeyResource.getFile())
+                        .build()
+                )
+                .build();
+            ImageDivServiceGrpc.ImageDivServiceBlockingStub stub = ImageDivServiceGrpc.newBlockingStub(channel);
+            response = stub.divideAndEmbed(req);
+        } catch (io.grpc.StatusRuntimeException e) {
+            model.addAttribute("errorMessage", e.getStatus().getDescription());
+        } finally {
+            if (channel != null) channel.shutdown();
+        }
+        model.addAttribute("dividedImages", response != null ? response.getDividedImagesList() : null);
+        model.addAttribute("accessKey", useAccessKey);
+        return "admin/analysis_test_image_division";
+    }
+
+    @PostMapping("/image-division-restore")
+    public String runImageDivisionRestore(
+            @RequestParam("dividedImages") List<MultipartFile> dividedImages,
+            @RequestParam(value = "accessKey", required = false) String accessKey,
+            @RequestParam("analysisName") String analysisName,
+            Model model, HttpServletRequest request) throws IOException {
+        String useAccessKey = (accessKey != null && !accessKey.isEmpty()) ? accessKey : defaultAccessKey;
+        List<String> dividedImagesBase64 = new java.util.ArrayList<>();
+        for (MultipartFile file : dividedImages) {
+            dividedImagesBase64.add(Base64.getEncoder().encodeToString(file.getBytes()));
+        }
+        AnalysisServiceImageDivOuterClass.ImageDivRestoreRequest req = AnalysisServiceImageDivOuterClass.ImageDivRestoreRequest.newBuilder()
+                .setAccessKey(useAccessKey)
+                .addAllDividedImages(dividedImagesBase64)
+                .setAnalysisName(analysisName)
+                .build();
+        // gRPC証明書リソース取得
+        Resource caCertResource = resourceLoader.getResource(caCertPath);
+        Resource clientCertResource = resourceLoader.getResource(clientCertPath);
+        Resource clientKeyResource = resourceLoader.getResource(clientKeyPath);
+        ManagedChannel channel = null;
+        AnalysisServiceImageDivOuterClass.ImageDivRestoreResponse response = null;
+        try {
+            channel = NettyChannelBuilder.forAddress("localhost", grpcPort)
+                .maxInboundMessageSize(grpcClientMaxInboundMessageSize)
+                .sslContext(
+                    GrpcSslContexts.forClient()
+                        .trustManager(caCertResource.getFile())
+                        .keyManager(clientCertResource.getFile(), clientKeyResource.getFile())
+                        .build()
+                )
+                .build();
+            ImageDivServiceGrpc.ImageDivServiceBlockingStub stub = ImageDivServiceGrpc.newBlockingStub(channel);
+            response = stub.restoreEmbedData(req);
+            model.addAttribute("restoredEmbedData", response != null ? response.getEmbedData() : null);
+            model.addAttribute("restoredEmbedDataType", response != null ? response.getEmbedDataType() : null);
+        } catch (io.grpc.StatusRuntimeException e) {
+            model.addAttribute("errorMessage", e.getStatus().getDescription());
+        } finally {
+            if (channel != null) channel.shutdown();
+        }
+        return "admin/analysis_test_image_division_restore";
+    }
+
     // ログ記録用メソッド
     private void logAction(HttpServletRequest request, String screen, String action) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

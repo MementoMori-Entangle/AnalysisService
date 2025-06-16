@@ -1,4 +1,4 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package analysis;
 
@@ -48,6 +48,7 @@ message AnalysisRequest {
   string template_name = 2;
   string image_base64 = 3;
   string access_key = 4;
+  string analysis_name = 5;
 }
 
 // 解析レスポンス

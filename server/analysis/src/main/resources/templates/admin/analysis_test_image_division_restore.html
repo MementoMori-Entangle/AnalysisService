@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>画像分割復号テスト</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .result { margin-top: 2em; padding: 1em; border: 1px solid #ccc; background: #f9f9f9; }
+        .label { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>画像分割復号テスト</h1>
+    <div th:if="${errorMessage}" class="result" style="background:#ffe0e0; border-color:#ff8888; color:#a00;">
+        <span th:text="${errorMessage}"></span>
+    </div>
+    <div class="result">
+        <div th:if="${restoredEmbedData != null}">
+            <div class="label">復号データ種別:</div>
+            <div th:text="${restoredEmbedDataType}"></div>
+            <div class="label">復号データ:</div>
+            <div th:if="${restoredEmbedDataType.name() == 'IMAGE'}">
+                <img th:src="@{'data:image/png;base64,' + ${restoredEmbedData}}" style="max-width:400px;">
+            </div>
+            <div th:if="${restoredEmbedDataType.name() != 'IMAGE'}">
+                <pre th:text="${restoredEmbedData}"></pre>
+            </div>
+        </div>
+        <div th:if="${restoredEmbedData == null}">
+            <span>復号データがありません。</span>
+        </div>
+    </div>
+    <p><a href="/admin/analysis-test">←テスト画面に戻る</a></p>
+</body>
+</html>

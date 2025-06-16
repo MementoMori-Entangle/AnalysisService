@@ -80,6 +80,7 @@ const AnalysisRequest$json = {
     {'1': 'template_name', '3': 2, '4': 1, '5': 9, '10': 'templateName'},
     {'1': 'image_base64', '3': 3, '4': 1, '5': 9, '10': 'imageBase64'},
     {'1': 'access_key', '3': 4, '4': 1, '5': 9, '10': 'accessKey'},
+    {'1': 'analysis_name', '3': 5, '4': 1, '5': 9, '10': 'analysisName'},
   ],
 };
 
@@ -87,7 +88,8 @@ const AnalysisRequest$json = {
 final $typed_data.Uint8List analysisRequestDescriptor = $convert.base64Decode(
     'Cg9BbmFseXNpc1JlcXVlc3QSIwoNYW5hbHlzaXNfdHlwZRgBIAEoCVIMYW5hbHlzaXNUeXBlEi'
     'MKDXRlbXBsYXRlX25hbWUYAiABKAlSDHRlbXBsYXRlTmFtZRIhCgxpbWFnZV9iYXNlNjQYAyAB'
-    'KAlSC2ltYWdlQmFzZTY0Eh0KCmFjY2Vzc19rZXkYBCABKAlSCWFjY2Vzc0tleQ==');
+    'KAlSC2ltYWdlQmFzZTY0Eh0KCmFjY2Vzc19rZXkYBCABKAlSCWFjY2Vzc0tleRIjCg1hbmFseX'
+    'Npc19uYW1lGAUgASgJUgxhbmFseXNpc05hbWU=');
 
 @$core.Deprecated('Use analysisResponseDescriptor instead')
 const AnalysisResponse$json = {

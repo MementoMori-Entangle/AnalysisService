@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>画像分割＋埋め込み 結果</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .result { margin-top: 2em; padding: 1em; border: 1px solid #ccc; background: #f9f9f9; }
+        .label { font-weight: bold; }
+        img { max-width: 200px; margin: 0.5em; border: 1px solid #aaa; }
+    </style>
+</head>
+<body>
+    <h1>画像分割＋埋め込み 結果</h1>
+    <div th:if="${errorMessage}" class="result" style="background:#ffe0e0; border-color:#ff8888; color:#a00;">
+        <span th:text="${errorMessage}"></span>
+    </div>
+    <div class="result">
+        <div th:if="${dividedImages != null}">
+            <div class="label">分割画像一覧:</div>
+            <div>
+                <span th:each="img : ${dividedImages}">
+                    <img th:src="@{'data:image/png;base64,' + ${img}}" />
+                </span>
+            </div>
+        </div>
+        <div th:if="${dividedImages == null}">
+            <span>分割画像はありません。</span>
+        </div>
+    </div>
+    <div style="margin-top:2em;">
+        <a href="/admin/analysis-test">← テスト画面に戻る</a>
+    </div>
+</body>
+</html>

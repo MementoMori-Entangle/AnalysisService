@@ -1,24 +1,27 @@
-package com.entangle.analysis;
-
-import analysis.ServiceInfoServiceGrpc;
-import analysis.AnalysisServiceOuterClass;
-import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.entangle.analysis.service.AccessKeyService;
-import com.entangle.analysis.service.ServiceInfoService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.entangle.analysis.entity.ServiceInfo;
-import com.entangle.analysis.repository.GrpcAccessLogRepository;
-import com.entangle.analysis.entity.GrpcAccessLog;
-import com.entangle.analysis.config.GrpcRemoteIpInterceptor;
-import com.google.protobuf.Message;
-import com.google.protobuf.util.JsonFormat;
-import org.springframework.context.MessageSource;
+package com.entangle.analysis.grpc;
 
 import java.util.List;
 import java.util.Locale;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+
+import com.entangle.analysis.config.GrpcRemoteIpInterceptor;
+import com.entangle.analysis.entity.GrpcAccessLog;
+import com.entangle.analysis.entity.ServiceInfo;
+import com.entangle.analysis.repository.GrpcAccessLogRepository;
+import com.entangle.analysis.service.AccessKeyService;
+import com.entangle.analysis.service.ServiceInfoService;
+import com.entangle.analysis.util.GrpcUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Message;
+import com.google.protobuf.util.JsonFormat;
+
+import analysis.AnalysisServiceOuterClass;
+import analysis.ServiceInfoServiceGrpc;
+import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 @GrpcService
 public class ServiceInfoServiceImpl extends ServiceInfoServiceGrpc.ServiceInfoServiceImplBase {
@@ -30,6 +33,8 @@ public class ServiceInfoServiceImpl extends ServiceInfoServiceGrpc.ServiceInfoSe
     private GrpcAccessLogRepository grpcAccessLogRepository;
     @Autowired
     private MessageSource messageSource;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ServiceInfoServiceImpl.class);
 
     private void logGrpcAccess(String serviceName, String methodName, Object requestObj, Object responseObj, String accessKey) {
         try {
@@ -55,7 +60,7 @@ public class ServiceInfoServiceImpl extends ServiceInfoServiceGrpc.ServiceInfoSe
             log.setIpAddress(ip != null ? ip : "unknown");
             grpcAccessLogRepository.save(log);
         } catch (Exception e) {
-            // ログ記録失敗時保留
+            log.error("GrpcAccessログエラー", e);
         }
     }
 
@@ -72,6 +77,7 @@ public class ServiceInfoServiceImpl extends ServiceInfoServiceGrpc.ServiceInfoSe
         }
         List<ServiceInfo> serviceInfoList = serviceInfoService.findAll();
         AnalysisServiceOuterClass.ServiceInfoResponse.Builder responseBuilder = AnalysisServiceOuterClass.ServiceInfoResponse.newBuilder();
+        boolean isAdmin = GrpcUtil.isAdminAccess();
         for (ServiceInfo info : serviceInfoList) {
             String jsonString = info.getDataProcessInfoJson();
             ObjectMapper mapper = new ObjectMapper();
@@ -79,6 +85,8 @@ public class ServiceInfoServiceImpl extends ServiceInfoServiceGrpc.ServiceInfoSe
                 JsonNode node = mapper.readTree(jsonString);
                 boolean enabled = node.get("enabled").asBoolean();
                 if (!enabled) continue;
+                boolean release = node.has("release") && node.get("release").asBoolean();
+                if (!release && !isAdmin) continue;
             } catch (Exception e) {
                 String msg = messageSource.getMessage("error.serviceinfo.json.invalid", null, locale);
                 responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(msg).asRuntimeException());

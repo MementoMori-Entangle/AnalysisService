@@ -1,27 +1,30 @@
-package com.entangle.analysis;
+package com.entangle.analysis.grpc;
 
-import analysis.AnalysisServiceGrpc;
-import analysis.AnalysisServiceOuterClass;
-import com.entangle.analysis.service.UserAuthService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.entangle.analysis.repository.PatternRepository;
-import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.entangle.analysis.handler.AnalysisHandler;
-import com.entangle.analysis.handler.PatternMatchingHandler;
-import com.entangle.analysis.entity.GrpcAccessLog;
-import com.entangle.analysis.repository.GrpcAccessLogRepository;
-import com.entangle.analysis.config.GrpcRemoteIpInterceptor;
-import com.google.protobuf.Message;
-import com.google.protobuf.util.JsonFormat;
-import org.springframework.context.MessageSource;
-
-import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+
+import com.entangle.analysis.config.GrpcRemoteIpInterceptor;
+import com.entangle.analysis.entity.GrpcAccessLog;
+import com.entangle.analysis.handler.AnalysisHandler;
+import com.entangle.analysis.handler.PatternMatchingHandler;
+import com.entangle.analysis.repository.GrpcAccessLogRepository;
+import com.entangle.analysis.repository.PatternRepository;
+import com.entangle.analysis.service.UserAuthService;
+import com.entangle.analysis.util.GrpcUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Message;
+import com.google.protobuf.util.JsonFormat;
+
+import analysis.AnalysisServiceGrpc;
+import analysis.AnalysisServiceOuterClass;
+import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 @GrpcService
 public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImplBase {
@@ -39,6 +42,7 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
     private MessageSource messageSource;
 
     private final Map<String, AnalysisHandler> handlerMap = new HashMap<>();
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ServiceInfoServiceImpl.class);
 
     public AnalysisServiceImpl() {
         // JavaCV/Opencv-platform依存でDLL自動ロードされるため、System.loadLibrary等は不要
@@ -46,8 +50,8 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
 
     @Autowired
     public void initHandlers() {
+        // AnalysisHandlerの実装をここに追加
         handlerMap.put("pattern-matching", new PatternMatchingHandler(patternRepository, serviceInfoService, messageSource, Locale.getDefault()));
-        // 今後他の解析種別もここに追加
     }
 
     // DB認証用メソッド
@@ -91,7 +95,7 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
             log.setIpAddress(ip != null ? ip : "unknown");
             grpcAccessLogRepository.save(log);
         } catch (Exception e) {
-            // ログ記録失敗時保留
+            log.error("GrpcAccessログエラー", e);
         }
     }
 
@@ -106,9 +110,9 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
             logGrpcAccess("AnalysisService", "analyze", request, null, accessKey);
             return;
         }
-        // クライアントから受け取ったanalysisType（例: マッチングA）からServiceInfoを逆引き
+        // クライアントから受け取ったanalysisName（例: マッチングA）からServiceInfoを逆引き
         com.entangle.analysis.entity.ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
-            .filter(info -> info.getAnalysisName().equals(request.getAnalysisType()))
+            .filter(info -> info.getAnalysisName().equals(request.getAnalysisName()))
             .findFirst().orElse(null);
         String handlerKey = null;
         if (serviceInfo != null) {
@@ -121,7 +125,19 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
             JsonNode node = mapper.readTree(jsonString);
             boolean enabled = node.get("enabled").asBoolean();
             if (!enabled) {
-                String msg = messageSource.getMessage("unsupported.analysisType", new Object[]{request.getAnalysisType()}, locale);
+                String msg = messageSource.getMessage("warning.enabled.false", new Object[]{}, locale);
+                responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION.withDescription(msg).asRuntimeException());
+                response = AnalysisServiceOuterClass.AnalysisResponse.newBuilder()
+                    .setAnalysisType(request.getAnalysisType())
+                    .setTemplateName(request.getTemplateName())
+                    .setMessage(msg)
+                    .build();
+                return;
+            }
+            boolean isAdmin = GrpcUtil.isAdminAccess();
+            boolean release = node.has("release") && node.get("release").asBoolean();
+            if (!release && !isAdmin) {
+                String msg = messageSource.getMessage("warning.release.false", new Object[]{}, locale);
                 responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION.withDescription(msg).asRuntimeException());
                 response = AnalysisServiceOuterClass.AnalysisResponse.newBuilder()
                     .setAnalysisType(request.getAnalysisType())

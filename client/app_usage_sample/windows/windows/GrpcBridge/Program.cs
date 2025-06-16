@@ -151,12 +151,14 @@ async Task<string> CallGrpcWithMtlsAsync(string request, string grpcUrl, string 
             var analysisType = root.TryGetProperty("analysisType", out var t) ? t.GetString() : "";
             var templateName = root.TryGetProperty("templateName", out var n) ? n.GetString() : "";
             var imageBase64 = root.TryGetProperty("imageBase64", out var i) ? i.GetString() : "";
+            var analysisName = root.TryGetProperty("analysisName", out var j) ? j.GetString() : "";
             var grpcRequest = new AnalysisRequest
             {
                 AccessKey = accessKey ?? "",
                 AnalysisType = analysisType ?? "",
                 TemplateName = templateName ?? "",
-                ImageBase64 = imageBase64 ?? ""
+                ImageBase64 = imageBase64 ?? "",
+                AnalysisName = analysisName ?? ""
             };
             var grpcResponse = await analysisClient.AnalyzeAsync(grpcRequest);
             return grpcResponse.ToString();

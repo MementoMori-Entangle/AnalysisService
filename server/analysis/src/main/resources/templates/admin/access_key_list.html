@@ -17,6 +17,24 @@
         .actions .edit { color: #1976d2; text-decoration: none; }
         .actions .delete { color: #d32f2f; text-decoration: none; }
         .json-cell { font-size: 0.95em; color: #444; background: #f8f8fa; border-radius: 4px; padding: 0.3em 0.7em; }
+        .pagination { display: inline-block; }
+        .pagination a {
+            color: #1976d2;
+            padding: 0.5em 1em;
+            text-decoration: none;
+            margin: 0 0.2em;
+            border: 1px solid #1976d2;
+            border-radius: 4px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .pagination a:hover {
+            background: #1976d2;
+            color: #fff;
+        }
+        .pagination span {
+            padding: 0.5em 1em;
+            margin: 0 0.2em;
+        }
     </style>
 </head>
 <body>
@@ -49,6 +67,19 @@
         </tr>
         </tbody>
     </table>
+    <div th:if="${totalPages > 1}" style="text-align:center; margin-bottom:2em;">
+        <nav class="pagination">
+            <a th:if="${page > 1}"
+               th:href="@{'/admin/access-keys'(page=${page-1})}" style="margin:0 0.5em;">« 前へ</a>
+            <span th:each="i : ${#numbers.sequence(1, totalPages)}">
+                <a th:if="${i != page}"
+                   th:href="@{'/admin/access-keys'(page=${i})}" style="margin:0 0.2em;">[[${i}]]</a>
+                <span th:if="${i == page}" style="font-weight:bold; color:#1976d2; margin:0 0.2em;">[[${i}]]</span>
+            </span>
+            <a th:if="${page < totalPages}"
+               th:href="@{'/admin/access-keys'(page=${page+1})}" style="margin:0 0.5em;">次へ »</a>
+        </nav>
+    </div>
 </div>
 </body>
 </html>

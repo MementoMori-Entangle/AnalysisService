@@ -85,6 +85,7 @@ class MainActivity : FlutterActivity() {
                             .setAnalysisType(params["analysisType"] as? String ?: "")
                             .setTemplateName(params["templateName"] as? String ?: "")
                             .setImageBase64(params["imageBase64"] as? String ?: "")
+                            .setAnalysisName(params["analysisType"] as? String ?: "")
                             .build()
                     val resp = stub.analyze(req)
                     channel.shutdown()

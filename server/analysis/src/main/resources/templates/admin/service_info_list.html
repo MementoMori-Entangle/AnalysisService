@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-css-reset/dist/reset.min.css">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f7f7fa; margin: 0; }
-        .container { max-width: 1200px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+        .container { max-width: 1320px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 32px; }
         h2 { font-size: 2rem; margin-bottom: 1.5rem; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
         th, td { padding: 0.7rem 1rem; border-bottom: 1px solid #e0e0e0; }
@@ -18,21 +18,73 @@
         .actions .edit { color: #1976d2; text-decoration: none; }
         .actions .delete { color: #d32f2f; text-decoration: none; }
         .json-cell { font-size: 0.95em; color: #444; background: #f8f8fa; border-radius: 4px; padding: 0.3em 0.7em; }
+        .pagination { display: inline-block; }
+        .pagination a {
+            color: #1976d2;
+            padding: 0.5rem 0.8rem;
+            text-decoration: none;
+            margin: 0 0.2rem;
+            border: 1px solid #1976d2;
+            border-radius: 4px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .pagination a:hover {
+            background: #1976d2;
+            color: #fff;
+        }
+        .pagination span {
+            padding: 0.5rem 0.8rem;
+            margin: 0 0.2rem;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h2>サービス情報一覧</h2>
-    <div style="text-align:right; margin-bottom:1em; display:flex; gap:1em; justify-content:flex-end;">
-        <a th:href="@{'/admin/service-info/new'}" class="add-btn">＋新規登録</a>
-        <a th:href="@{'/admin'}" class="add-btn" style="background:#888;">管理画面トップへ戻る</a>
+    <div style="margin-bottom:1.5em; display:flex; gap:1em; align-items:center; justify-content:space-between;">
+        <form th:action="@{'/admin/service-info'}" method="get" style="display:flex; gap:1em; align-items:center; margin:0;">
+            <input type="text" name="searchType" placeholder="解析種類で検索" th:value="${searchType}" style="padding:0.4em 0.8em; border-radius:4px; border:1px solid #ccc; min-width:160px;" />
+            <input type="text" name="searchName" placeholder="解析名で検索" th:value="${searchName}" style="padding:0.4em 0.8em; border-radius:4px; border:1px solid #ccc; min-width:160px;" />
+            <input type="hidden" name="sort" th:value="${sort}" />
+            <input type="hidden" name="order" th:value="${order}" />
+            <button type="submit" class="add-btn" style="background:#43a047;">検索</button>
+            <a th:href="@{'/admin/service-info'}" class="add-btn" style="background:#888;">リセット</a>
+        </form>
+        <div style="display:flex; gap:1em;">
+            <a th:href="@{'/admin/service-info/new'}" class="add-btn">＋新規登録</a>
+            <a th:href="@{'/admin'}" class="add-btn" style="background:#888;">管理画面トップへ戻る</a>
+        </div>
     </div>
     <table>
         <thead>
         <tr>
-            <th>ID</th>
-            <th>解析種類</th>
-            <th>解析名</th>
+            <th>
+                <!-- IDカラムのソートリンク -->
+                <a th:if="${sort} == 'id' and ${order} == 'asc'"
+                   th:href="@{'/admin/service-info'(sort='id', order='desc')}">ID▼</a>
+                <a th:if="${sort} == 'id' and ${order} == 'desc'"
+                   th:href="@{'/admin/service-info'(sort='id', order='asc')}">ID▲</a>
+                <a th:if="${sort} != 'id'"
+                   th:href="@{'/admin/service-info'(sort='id', order='asc')}">ID</a>
+            </th>
+            <th>
+                <!-- 解析種類カラムのソートリンク -->
+                <a th:if="${sort} == 'analysisType' and ${order} == 'asc'"
+                   th:href="@{'/admin/service-info'(sort='analysisType', order='desc')}">解析種類▼</a>
+                <a th:if="${sort} == 'analysisType' and ${order} == 'desc'"
+                   th:href="@{'/admin/service-info'(sort='analysisType', order='asc')}">解析種類▲</a>
+                <a th:if="${sort} != 'analysisType'"
+                   th:href="@{'/admin/service-info'(sort='analysisType', order='asc')}">解析種類</a>
+            </th>
+            <th>
+                <!-- 解析名カラムのソートリンク -->
+                <a th:if="${sort} == 'analysisName' and ${order} == 'asc'"
+                   th:href="@{'/admin/service-info'(sort='analysisName', order='desc')}">解析名▼</a>
+                <a th:if="${sort} == 'analysisName' and ${order} == 'desc'"
+                   th:href="@{'/admin/service-info'(sort='analysisName', order='asc')}">解析名▲</a>
+                <a th:if="${sort} != 'analysisName'"
+                   th:href="@{'/admin/service-info'(sort='analysisName', order='asc')}">解析名</a>
+            </th>
             <th>対象データ処理情報(JSON)</th>
             <th>操作</th>
             <th>テンプレート画像登録</th>
@@ -57,6 +109,19 @@
         </tr>
         </tbody>
     </table>
+    <div th:if="${totalPages > 1}" style="text-align:center; margin-bottom:2em;">
+        <nav class="pagination">
+            <a th:if="${page > 1}"
+               th:href="@{'/admin/service-info'(sort=${sort}, order=${order}, page=${page-1})}" style="margin:0 0.5em;">« 前へ</a>
+            <span th:each="i : ${#numbers.sequence(1, totalPages)}">
+                <a th:if="${i != page}"
+                   th:href="@{'/admin/service-info'(sort=${sort}, order=${order}, page=${i})}" style="margin:0 0.2em;">[[${i}]]</a>
+                <span th:if="${i == page}" style="font-weight:bold; color:#1976d2; margin:0 0.2em;">[[${i}]]</span>
+            </span>
+            <a th:if="${page < totalPages}"
+               th:href="@{'/admin/service-info'(sort=${sort}, order=${order}, page=${page+1})}" style="margin:0 0.5em;">次へ »</a>
+        </nav>
+    </div>
 </div>
 </body>
 </html>

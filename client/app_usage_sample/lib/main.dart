@@ -451,6 +451,7 @@ class _AnalysisTestScreenState extends State<AnalysisTestScreen> {
         'analysisType': selectedService,
         'imageBase64': imageBase64,
         'accessKey': AppConfig.defaultAccessKey,
+        'analysisName': selectedService,
       };
       final responseJson = await grpcClient.sendRequest(request);
       final response = jsonDecode(responseJson);
