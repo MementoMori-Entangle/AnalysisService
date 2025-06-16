@@ -27,13 +27,24 @@
             margin: 0;
             letter-spacing: 0.05em;
         }
-        a.logout-btn {
+        .logout-btn {
+            background: linear-gradient(90deg, #b0bec5 0%, #78909c 100%);
             color: #fff;
-            background: #d32f2f;
-            padding: 0.5em 1.2em;
-            border-radius: 4px;
-            text-decoration: none;
+            border: none;
+            border-radius: 24px;
+            padding: 8px 24px;
+            font-size: 1rem;
             font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: background 0.3s, box-shadow 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-btn:hover {
+            background: linear-gradient(90deg, #90a4ae 0%, #b0bec5 100%);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         }
         section {
             margin-bottom: 2em;
@@ -83,7 +94,13 @@
     <header>
         <h1>管理画面トップ</h1>
         <form th:action="@{/logout}" method="post" style="display:inline;">
-            <button type="submit" class="logout-btn">ログアウト</button>
+            <button type="submit" class="logout-btn">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" style="vertical-align:middle;">
+                    <path d="M16 17l5-5m0 0l-5-5m5 5H9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ログアウト
+            </button>
         </form>
     </header>
     <section>

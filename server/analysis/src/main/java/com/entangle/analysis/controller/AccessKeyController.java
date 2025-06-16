@@ -20,10 +20,24 @@ public class AccessKeyController {
     @Value("${access-key.length:32}")
     private int accessKeyLength;
 
+    @Value("${access-key.page-size:10}")
+    private int accessKeyPageSize;
+
     @GetMapping
-    public String list(Model model) {
+    public String list(@RequestParam(value = "page", required = false, defaultValue = "1") int page, Model model) {
         List<AccessKey> keys = accessKeyRepository.findAll();
-        model.addAttribute("accessKeys", keys);
+        int total = keys.size();
+        int totalPages = (int)Math.ceil((double)total / accessKeyPageSize);
+        if (totalPages == 0) totalPages = 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        int fromIdx = (page - 1) * accessKeyPageSize;
+        int toIdx = Math.min(fromIdx + accessKeyPageSize, total);
+        List<AccessKey> pagedKeys = (fromIdx < toIdx) ? keys.subList(fromIdx, toIdx) : new java.util.ArrayList<>();
+        model.addAttribute("accessKeys", pagedKeys);
+        model.addAttribute("page", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("pageSize", accessKeyPageSize);
         return "admin/access_key_list";
     }
 

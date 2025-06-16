@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>AnalysisServiceImpl テスト</title>
+    <title>AnalysisService テスト</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-css-reset/dist/reset.min.css">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f7f7fa; margin: 0; }
@@ -19,13 +19,13 @@
 </head>
 <body>
 <div class="container">
-    <h2 th:text="#{analysis.test.title}">AnalysisServiceImpl テスト</h2>
-    <form th:action="@{'/admin/analysis-test'}" method="post" enctype="multipart/form-data">
+    <h2 th:text="#{analysis.test.title}">AnalysisService テスト</h2>
+    <form id="analysisForm" th:action="@{'/admin/analysis-test'}" method="post" enctype="multipart/form-data">
         <div th:if="${error}" class="error" th:text="${error}"></div>
         <div th:if="${message}" class="error" th:text="${message}"></div>
         <div>
             <label for="analysisType" th:text="#{analysis.test.analysisType.label}">解析種別を選択:</label>
-            <select id="analysisType" name="analysisType" required style="width:auto; min-width:180px;" oninput="adjustSelectWidth(this)">
+            <select id="analysisType" name="analysisName" required style="width:auto; min-width:180px;" oninput="adjustSelectWidth(this)">
                 <!-- displayNameを値として送信 -->
                 <option th:each="type : ${analysisTypes}" th:value="${type.displayName}" th:text="${type.displayName}"></option>
             </select>
@@ -55,8 +55,77 @@
             <label for="imageFile" th:text="#{analysis.test.imageFile.label}">画像ファイルを選択:</label>
             <input type="file" id="imageFile" name="imageFile" accept="image/*" required />
         </div>
+        <div id="embedDataFields" style="display:none;">
+            <label for="embedDataType">埋め込みデータ種別:</label>
+            <select id="embedDataType" name="embedDataType">
+                <option value="TEXT">テキスト</option>
+                <option value="IMAGE">画像（ファイルアップロード）</option>
+            </select>
+            <div id="embedTextAreaWrap">
+                <label for="embedData">埋め込みデータ（テキスト）:</label>
+                <textarea id="embedData" name="embedData" rows="3" style="width:100%;"></textarea>
+            </div>
+            <div id="embedImageInputWrap" style="display:none;">
+                <label for="embedImageFile">埋め込み画像ファイル:</label>
+                <input type="file" id="embedImageFile" name="embedImageFile" accept="image/*" />
+            </div>
+            <button type="submit" class="btn" id="btnDivEmbed">画像分割＋埋め込み</button>
+        </div>
+        <div id="restoreFields" style="display:none;">
+            <label for="dividedImages">分割画像ファイル（複数選択可）:</label>
+            <input type="file" id="dividedImages" name="dividedImages" multiple accept="image/*" />
+            <button type="submit" class="btn" id="btnRestore">分割画像から復号</button>
+        </div>
         <input type="hidden" name="accessKey" th:value="${accessKey}" />
         <button type="submit" class="btn" th:text="#{analysis.test.run.button}">解析実行</button>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var sel = document.getElementById('analysisType');
+            var embedFields = document.getElementById('embedDataFields');
+            var restoreFields = document.getElementById('restoreFields');
+            var form = document.getElementById('analysisForm');
+            var embedDataTypeSel = document.getElementById('embedDataType');
+            var embedTextAreaWrap = document.getElementById('embedTextAreaWrap');
+            var embedImageInputWrap = document.getElementById('embedImageInputWrap');
+            function updateForm() {
+                var val = sel.value || '';
+                // 「分割」または division を含む場合に分割UIを表示
+                if (val.includes('分割') || val.toLowerCase().includes('division')) {
+                    embedFields.style.display = '';
+                    restoreFields.style.display = '';
+                } else {
+                    embedFields.style.display = 'none';
+                    restoreFields.style.display = 'none';
+                    form.action = '/admin/analysis-test';
+                }
+            }
+            sel.addEventListener('change', updateForm);
+            updateForm();
+            // 埋め込みデータ種別切り替え
+            function updateEmbedDataType() {
+                if (embedDataTypeSel.value === 'IMAGE') {
+                    embedTextAreaWrap.style.display = 'none';
+                    embedImageInputWrap.style.display = '';
+                } else {
+                    embedTextAreaWrap.style.display = '';
+                    embedImageInputWrap.style.display = 'none';
+                }
+            }
+            embedDataTypeSel.addEventListener('change', updateEmbedDataType);
+            updateEmbedDataType();
+            // 画像分割＋埋め込みボタン
+            document.getElementById('btnDivEmbed').onclick = function(e) {
+                form.action = '/admin/analysis-test/image-division';
+                document.getElementById('dividedImages').removeAttribute('required');
+            };
+            // 分割画像から復号ボタン
+            document.getElementById('btnRestore').onclick = function(e) {
+                form.action = '/admin/analysis-test/image-division-restore';
+                document.getElementById('dividedImages').setAttribute('required', 'required');
+                document.getElementById('imageFile').removeAttribute('required');
+            };
+        });
+        </script>
     </form>
     <div th:if="${results}">
         <h3 th:text="#{analysis.test.result.title}">解析結果</h3>

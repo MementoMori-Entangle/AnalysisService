@@ -42,7 +42,8 @@ class GrpcWebMtlsClient implements GrpcClient {
             ..accessKey = params['accessKey'] as String? ?? ''
             ..analysisType = params['analysisType'] as String? ?? ''
             ..templateName = params['templateName'] as String? ?? ''
-            ..imageBase64 = params['imageBase64'] as String? ?? '';
+            ..imageBase64 = params['imageBase64'] as String? ?? ''
+            ..analysisName = params['analysisType'] as String? ?? '';
       final resp = await stub.analyze(req);
       final results =
           resp.results

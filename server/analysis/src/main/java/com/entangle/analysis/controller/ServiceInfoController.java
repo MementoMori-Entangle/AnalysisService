@@ -1,30 +1,5 @@
 package com.entangle.analysis.controller;
 
-import com.entangle.analysis.entity.ServiceInfo;
-import com.entangle.analysis.entity.Pattern;
-import com.entangle.analysis.service.ServiceInfoService;
-import com.entangle.analysis.repository.PatternRepository;
-import com.entangle.analysis.repository.LogRepository;
-import com.entangle.analysis.entity.Log;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.MediaType;
-import jakarta.validation.Valid;
-import org.yaml.snakeyaml.Yaml;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -36,13 +11,41 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import com.entangle.analysis.util.TemplateImageInfoUtil;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.yaml.snakeyaml.Yaml;
+
+import com.entangle.analysis.entity.Log;
+import com.entangle.analysis.entity.Pattern;
+import com.entangle.analysis.entity.ServiceInfo;
+import com.entangle.analysis.repository.LogRepository;
+import com.entangle.analysis.repository.PatternRepository;
+import com.entangle.analysis.service.ServiceInfoService;
+import com.entangle.analysis.util.TemplateImageInfoUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.context.MessageSource;
+import jakarta.validation.Valid;
 
 @Controller
 @RequestMapping("/admin/service-info")
@@ -61,6 +64,9 @@ public class ServiceInfoController {
 
     @Value("${template.images.page-size:10}")
     private int templateImagesPageSize;
+
+    @Value("${service-info.page-size:10}")
+    private int serviceInfoPageSize;
 
     @Lazy
     @Autowired
@@ -102,12 +108,46 @@ public class ServiceInfoController {
     }
 
     @GetMapping({"", "/"})
-    public String list(Model model, HttpServletRequest request) {
-        List<ServiceInfo> list = serviceInfoService.findAll();
-        // templateDirPathを抽出してMapで渡す
+    public String list(@RequestParam(value = "sort", required = false, defaultValue = "id") String sort,
+                      @RequestParam(value = "order", required = false, defaultValue = "asc") String order,
+                      @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+                      @RequestParam(value = "searchType", required = false, defaultValue = "") String searchType,
+                      @RequestParam(value = "searchName", required = false, defaultValue = "") String searchName,
+                      Model model, HttpServletRequest request) {
+        List<ServiceInfo> list;
+        if (!searchType.isEmpty() || !searchName.isEmpty()) {
+            list = serviceInfoService.search(searchType, searchName);
+        } else {
+            list = serviceInfoService.findAll();
+        }
+        // ソート
+        java.util.Comparator<ServiceInfo> comparator;
+        switch (sort) {
+            case "analysisType":
+                comparator = java.util.Comparator.comparing(ServiceInfo::getAnalysisType, java.util.Comparator.nullsFirst(String::compareTo));
+                break;
+            case "analysisName":
+                comparator = java.util.Comparator.comparing(ServiceInfo::getAnalysisName, java.util.Comparator.nullsFirst(String::compareTo));
+                break;
+            default:
+                comparator = java.util.Comparator.comparing(ServiceInfo::getId, java.util.Comparator.nullsFirst(Long::compareTo));
+        }
+        if ("desc".equalsIgnoreCase(order)) {
+            comparator = comparator.reversed();
+        }
+        list = list.stream().sorted(comparator).toList();
+        // ページング処理
+        int total = list.size();
+        int totalPages = (int)Math.ceil((double)total / serviceInfoPageSize);
+        if (totalPages == 0) totalPages = 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        int fromIdx = (page - 1) * serviceInfoPageSize;
+        int toIdx = Math.min(fromIdx + serviceInfoPageSize, total);
+        List<ServiceInfo> pagedList = (fromIdx < toIdx) ? list.subList(fromIdx, toIdx) : new ArrayList<>();
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> viewList = new ArrayList<>();
-        for (ServiceInfo info : list) {
+        for (ServiceInfo info : pagedList) {
             Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", info.getId());
             map.put("analysisType", info.getAnalysisType());
@@ -116,14 +156,23 @@ public class ServiceInfoController {
             String templateDirPath = null;
             try {
                 JsonNode node = mapper.readTree(info.getDataProcessInfoJson());
-                if (node.has("templateDirPath")) {
-                    templateDirPath = node.get("templateDirPath").asText();
+                if ("pattern-matching".equals(info.getAnalysisType())) {
+                    if (node.has("templateDirPath")) {
+                        templateDirPath = node.get("templateDirPath").asText();
+                    }
                 }
             } catch (Exception e) { /* ignore */ }
-            map.put("templateDirPath", templateDirPath);
+            map.put("templateDirPath", templateDirPath); // パターンマッチング用
             viewList.add(map);
         }
         model.addAttribute("serviceInfoList", viewList);
+        model.addAttribute("sort", sort);
+        model.addAttribute("order", order);
+        model.addAttribute("page", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("pageSize", serviceInfoPageSize);
+        model.addAttribute("searchType", searchType);
+        model.addAttribute("searchName", searchName);
         logAction(request, messageSource.getMessage("serviceinfo.list.screen", null, request.getLocale()),
                   messageSource.getMessage("serviceinfo.list.action", null, request.getLocale()));
         return "admin/service_info_list";

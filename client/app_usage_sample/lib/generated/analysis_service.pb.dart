@@ -260,12 +260,14 @@ class AnalysisRequest extends $pb.GeneratedMessage {
     $core.String? templateName,
     $core.String? imageBase64,
     $core.String? accessKey,
+    $core.String? analysisName,
   }) {
     final result = create();
     if (analysisType != null) result.analysisType = analysisType;
     if (templateName != null) result.templateName = templateName;
     if (imageBase64 != null) result.imageBase64 = imageBase64;
     if (accessKey != null) result.accessKey = accessKey;
+    if (analysisName != null) result.analysisName = analysisName;
     return result;
   }
 
@@ -279,6 +281,7 @@ class AnalysisRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'templateName')
     ..aOS(3, _omitFieldNames ? '' : 'imageBase64')
     ..aOS(4, _omitFieldNames ? '' : 'accessKey')
+    ..aOS(5, _omitFieldNames ? '' : 'analysisName')
     ..hasRequiredFields = false
   ;
 
@@ -334,6 +337,15 @@ class AnalysisRequest extends $pb.GeneratedMessage {
   $core.bool hasAccessKey() => $_has(3);
   @$pb.TagNumber(4)
   void clearAccessKey() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get analysisName => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set analysisName($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAnalysisName() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAnalysisName() => $_clearField(5);
 }
 
 /// 解析レスポンス

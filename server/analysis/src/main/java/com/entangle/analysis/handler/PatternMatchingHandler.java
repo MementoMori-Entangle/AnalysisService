@@ -1,10 +1,12 @@
 package com.entangle.analysis.handler;
 
-import analysis.AnalysisServiceOuterClass;
-import com.entangle.analysis.entity.Pattern;
-import com.entangle.analysis.repository.PatternRepository;
-import com.entangle.analysis.service.ServiceInfoService;
-import io.grpc.stub.StreamObserver;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.opencv.global.opencv_core;
@@ -14,12 +16,12 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point;
 import org.springframework.context.MessageSource;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Locale;
+import com.entangle.analysis.entity.Pattern;
+import com.entangle.analysis.repository.PatternRepository;
+import com.entangle.analysis.service.ServiceInfoService;
+
+import analysis.AnalysisServiceOuterClass;
+import io.grpc.stub.StreamObserver;
 
 public class PatternMatchingHandler implements AnalysisHandler {
     private final PatternRepository patternRepository;
@@ -36,8 +38,7 @@ public class PatternMatchingHandler implements AnalysisHandler {
 
     @Override
     public AnalysisServiceOuterClass.AnalysisResponse handle(AnalysisServiceOuterClass.AnalysisRequest request, StreamObserver<AnalysisServiceOuterClass.AnalysisResponse> responseObserver) {
-        // 受け取るanalysisTypeは「pattern-matching」ではなく「マッチングA」や「マッチングS」などの名称になる
-        String analysisName = request.getAnalysisType(); // クライアントから送られる名称
+        String analysisName = request.getAnalysisName(); // クライアントから送られる名称
         // 名称からServiceInfoを逆引き
         com.entangle.analysis.entity.ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
             .filter(info -> info.getAnalysisName().equals(analysisName))

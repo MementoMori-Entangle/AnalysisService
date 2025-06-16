@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package analysis;
 
+option java_package = "analysis";
+option java_outer_classname = "AnalysisServiceOuterClass";
+
 // サービス情報取得用
 service ServiceInfoService {
   // 利用可能な解析サービス情報を取得
@@ -45,6 +48,7 @@ message AnalysisRequest {
   string template_name = 2;
   string image_base64 = 3;
   string access_key = 4;
+  string analysis_name = 5;
 }
 
 // 解析レスポンス

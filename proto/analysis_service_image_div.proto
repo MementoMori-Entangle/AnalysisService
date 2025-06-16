@@ -1,0 +1,47 @@
+﻿syntax = "proto3";
+
+package analysis;
+
+option java_package = "analysis";
+option java_outer_classname = "AnalysisServiceImageDivOuterClass";
+
+enum EmbedDataType {
+  UNSPECIFIED = 0;
+  TEXT = 1;
+  IMAGE = 2;
+}
+
+// 画像分割＋データ埋め込みリクエスト
+message ImageDivEmbedRequest {
+  string access_key = 1;              // 必須: アクセスキー
+  string original_image_base64 = 2;   // 分割元画像（必須）
+  string embed_data = 3;              // 埋め込むデータ（テキストまたは画像Base64, 空可）
+  EmbedDataType embed_data_type = 4;
+  string analysis_name = 5;           // 解析名
+}
+
+// 画像分割＋埋め込みレスポンス
+message ImageDivEmbedResponse {
+  repeated string divided_images = 1; // 分割後画像（Base64, チャンクにUID埋め込み）
+}
+
+// 分割画像から元データ復元リクエスト
+message ImageDivRestoreRequest {
+  string access_key = 1;              // 必須: アクセスキー
+  repeated string divided_images = 2; // 分割画像（Base64, チャンクにUID埋め込み）
+  string analysis_name = 3;           // 解析名
+}
+
+// 復元レスポンス
+message ImageDivRestoreResponse {
+  string embed_data = 1;             // 復号データ
+  EmbedDataType embed_data_type = 2;
+}
+
+service ImageDivService {
+  // 分割＋埋め込み
+  rpc DivideAndEmbed (ImageDivEmbedRequest) returns (ImageDivEmbedResponse);
+
+  // 分割画像から元データ復元
+  rpc RestoreEmbedData (ImageDivRestoreRequest) returns (ImageDivRestoreResponse);
+}
