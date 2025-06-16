@@ -10,6 +10,7 @@ gRPCサービスで解析処理を行うパターンを考慮
 [環境]  
 DB MariaDB(MySQL) 10.4.32  
 JavaSDK 17  
+.Net 9 (C#)  
 Flutter 3.29.3  
 Spring Boot 3.5.0 (Project:Maven、Language:Java、Packaging:jar)
 
