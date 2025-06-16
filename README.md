@@ -13,7 +13,6 @@ JavaSDK 17
 Flutter 3.29.3  
 Spring Boot 3.5.0 (Project:Maven、Language:Java、Packaging:jar)
 
-
 # 全プラットホーム共通問題
 flutter + gRPCクライアントからサーバー Java Spring Boot + gRPCにmTLSで  
 送受信するためには、公式がサポートしていないため、  
@@ -32,7 +31,7 @@ GrpcBridge.exe https://localhost:9090 C:\workspace\AnalysisService\client\app_us
 GrpcBridge.exe https://localhost:9090 C:\workspace\AnalysisService\client\app_usage_sample\assets --stdio
 
 # Android版 mTLS対応
-Platform Channelを使用してandroid側でgRPCを処理するようにしました。  
+Platform Channelを使用してandroid(kotlin)側でgRPCを処理するようにしました。  
 mTLSを使用する場合、2025年6月12日時点では、Nettyではなく  
 gRPC-OkHttpを使用するしかないようです。(Nettyで対応する場合は、ソース修正ビルド必要?)  
 Androidエミュレータからは「10.0.2.2」でアクセスするため、証明書のSANに「IP.1 = 10.0.2.2」が必須です。  
@@ -40,7 +39,7 @@ Androidエミュレータからは「10.0.2.2」でアクセスするため、�
 
 # Web版 mTLS対応
 2025年6月13日の時点では、一般的なブラウザはmTLSに対応していません。  
-そのため、プロキシーブリッジで対応することになります。  
+そのため、プロキシブリッジで対応することになります。  
 今回は「grpcwebproxy」で対応しました。  
 [Flutter Web] --gRPC-Web/HTTP1.1--> [grpcwebproxy:8080] --gRPC/HTTP2--> [Spring Boot gRPC:9090]
 
