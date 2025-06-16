@@ -8,7 +8,6 @@ public class GrpcUtil {
      */
     public static boolean isAdminAccess() {
         String ip = GrpcRemoteIpInterceptor.REMOTE_IP_KEY.get();
-        System.out.println("Remote IP: " + ip);
         return "127.0.0.1".equals(ip) || "::1".equals(ip) || "localhost".equals(ip);
     }
 }
