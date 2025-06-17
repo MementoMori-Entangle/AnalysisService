@@ -3,8 +3,11 @@ analysis-types:
   - id: pattern-matching
     label: パターンマッチング
     jsonExample: |
-      { "templateDirPath": "/path/to/dir", "templateDirName": "dir1", "threshold": 0.8, "release": true, "enabled": true }
+      { "templateDirPath": "/path/to/dir", "templateDirName": "dir1",
+        "threshold": 0.8, "max_upload_size": 2048000, "release": true, "enabled": true }
   - id: image-division
     label: 画像分割
     jsonExample: |
-      { "tempDirPath": "/path/to/dir", "divisionName": "4Division", "divisionNum": 4, "encryption": true, "release": true, "enabled": true }
+      { "tempDirPath": "/path/to/dir", "divisionName": "4Division",
+      "divisionNum": 4, "max_upload_size": 2048000, "encryption": true,
+      "release": true, "enabled": true }
