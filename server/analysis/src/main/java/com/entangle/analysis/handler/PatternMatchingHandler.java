@@ -19,6 +19,7 @@ import org.springframework.context.MessageSource;
 import com.entangle.analysis.entity.Pattern;
 import com.entangle.analysis.repository.PatternRepository;
 import com.entangle.analysis.service.ServiceInfoService;
+import com.entangle.analysis.util.FileSizeFormatUtil;
 
 import analysis.AnalysisServiceOuterClass;
 import io.grpc.stub.StreamObserver;
@@ -28,12 +29,15 @@ public class PatternMatchingHandler implements AnalysisHandler {
     private final ServiceInfoService serviceInfoService;
     private final MessageSource messageSource;
     private final Locale locale;
+    private final int defaultMaxUploadSize;
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PatternMatchingHandler.class);
 
-    public PatternMatchingHandler(PatternRepository patternRepository, ServiceInfoService serviceInfoService, MessageSource messageSource, Locale locale) {
+    public PatternMatchingHandler(PatternRepository patternRepository, ServiceInfoService serviceInfoService, MessageSource messageSource, Locale locale, int defaultMaxUploadSize) {
         this.patternRepository = patternRepository;
         this.serviceInfoService = serviceInfoService;
         this.messageSource = messageSource;
         this.locale = locale;
+        this.defaultMaxUploadSize = defaultMaxUploadSize;
     }
 
     @Override
@@ -73,7 +77,24 @@ public class PatternMatchingHandler implements AnalysisHandler {
                 responseObserver.onCompleted();
                 return response;
             }
+            // --- アップロードサイズ制限チェック ---
+            int maxUploadSize = defaultMaxUploadSize;
+            if (node.has("max_upload_size")) {
+                maxUploadSize = node.get("max_upload_size").asInt(defaultMaxUploadSize);
+            }
             byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
+            if (imageBytes.length > maxUploadSize) {
+                log.warn("アップロード画像サイズ超過: アップロード値 > 制限値", imageBytes.length, maxUploadSize);
+                String msg = messageSource.getMessage("error.upload.size", new Object[]{FileSizeFormatUtil.formatBytes(maxUploadSize, "MB")}, locale);
+                AnalysisServiceOuterClass.AnalysisResponse errorResponse = AnalysisServiceOuterClass.AnalysisResponse.newBuilder()
+                    .setAnalysisType(analysisName)
+                    .setTemplateName(request.getTemplateName())
+                    .setMessage(msg)
+                    .build();
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+                return errorResponse;
+            }
             Mat buf = new Mat(new BytePointer(imageBytes));
             Mat inputImg = opencv_imgcodecs.imdecode(buf, opencv_imgcodecs.IMREAD_COLOR);
             double threshold = 0.8;
@@ -119,7 +140,8 @@ public class PatternMatchingHandler implements AnalysisHandler {
             responseObserver.onCompleted();
             return response;
         } catch (Exception e) {
-            String msg = messageSource.getMessage("error.pattern.matching", null, locale) + ": " + e.getMessage();
+            log.error("Pattern matching error", e);
+            String msg = messageSource.getMessage("error.pattern.matching", null, locale);
             AnalysisServiceOuterClass.AnalysisResponse errorResponse = AnalysisServiceOuterClass.AnalysisResponse.newBuilder()
                 .setAnalysisType(analysisName)
                 .setTemplateName(request.getTemplateName())

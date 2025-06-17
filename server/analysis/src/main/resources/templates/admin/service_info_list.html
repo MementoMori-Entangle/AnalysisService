@@ -36,6 +36,8 @@
             padding: 0.5rem 0.8rem;
             margin: 0 0.2rem;
         }
+        .template-btn-cell { text-align: center; vertical-align: middle; min-width: 110px; }
+        .template-btn-cell .add-btn { font-size: 0.95em; padding: 0.3em 0.8em; min-width: 80px; }
     </style>
 </head>
 <body>
@@ -100,8 +102,9 @@
                 <a th:href="@{'/admin/service-info/edit/' + ${info.id}}" class="edit">編集</a>
                 <a th:href="@{'/admin/service-info/delete/' + ${info.id}}" class="delete" onclick="return confirm('本当に削除しますか？');">削除</a>
             </td>
-            <td>
+            <td class="template-btn-cell">
                 <a th:if="${info.templateDirPath != null and !#strings.isEmpty(info.templateDirPath)}" th:href="@{'/admin/service-info/template-images?dir=' + ${info.templateDirPath}}" class="add-btn" style="background:#43a047;">画像登録</a>
+                <span th:if="${info.templateDirPath == null or #strings.isEmpty(info.templateDirPath)}">&nbsp;</span>
             </td>
         </tr>
         <tr th:if="${serviceInfoList.size()} == 0">

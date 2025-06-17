@@ -21,8 +21,8 @@ public class ImageDivServiceImpl extends ImageDivServiceGrpc.ImageDivServiceImpl
     private final ImageDivHandler imageDivHandler;
 
     @Autowired
-    public ImageDivServiceImpl(MessageSource messageSource, AccessKeyService accessKeyService, ServiceInfoService serviceInfoService, ImageDivisionInfoRepository imageDivisionInfoRepository, @Value("${image.division.encrypt-key}") String encryptKey) {
-        this.imageDivHandler = new ImageDivHandler(messageSource, Locale.getDefault(), accessKeyService, serviceInfoService, imageDivisionInfoRepository, encryptKey);
+    public ImageDivServiceImpl(MessageSource messageSource, AccessKeyService accessKeyService, ServiceInfoService serviceInfoService, ImageDivisionInfoRepository imageDivisionInfoRepository, @Value("${image.division.encrypt-key}") String encryptKey, @Value("${image.upload.max-size:2097152}") int defaultMaxUploadSize) {
+        this.imageDivHandler = new ImageDivHandler(messageSource, Locale.getDefault(), accessKeyService, serviceInfoService, imageDivisionInfoRepository, encryptKey, defaultMaxUploadSize);
     }
 
     @Override

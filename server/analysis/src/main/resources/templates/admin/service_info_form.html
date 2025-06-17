@@ -11,7 +11,7 @@
         form { display: flex; flex-direction: column; gap: 1.2em; }
         label { font-weight: bold; }
         input, select, textarea { padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
-        textarea { min-height: 100px; font-family: monospace; }
+        textarea { min-height: 100px; font-family: monospace; width: 70%; }
         .actions { display: flex; gap: 1em; margin-top: 1.5em; }
         .btn { background: #1976d2; color: #fff; border: none; padding: 0.5em 1.5em; border-radius: 4px; font-size: 1em; cursor: pointer; transition: background 0.2s; }
         .btn:hover { background: #125ea2; }
@@ -44,7 +44,7 @@
                 <strong>例:</strong>
                 <pre id="jsonExampleText" style="background:#f8f8fa; border-radius:4px; padding:0.5em 1em; margin:0;">{ "templateDirPath": "/path/to/dir", "templateDirName": "dir1", "threshold": 0.8, "enabled": true }</pre>
             </div>
-            <textarea id="dataProcessInfoJson" name="dataProcessInfoJson" required th:text="${serviceInfo.dataProcessInfoJson}"></textarea>
+            <textarea id="dataProcessInfoJson" name="dataProcessInfoJson" required th:text="${serviceInfo.dataProcessInfoJson}" wrap="soft" cols="80"></textarea>
         </div>
         <script>
         function updateJsonExample() {

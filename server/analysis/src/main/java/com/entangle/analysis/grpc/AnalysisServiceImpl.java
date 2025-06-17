@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 
 import com.entangle.analysis.config.GrpcRemoteIpInterceptor;
@@ -41,6 +42,9 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
     @Autowired
     private MessageSource messageSource;
 
+    @Value("${image.upload.max-size}")
+    private int defaultMaxUploadSize;
+
     private final Map<String, AnalysisHandler> handlerMap = new HashMap<>();
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ServiceInfoServiceImpl.class);
 
@@ -51,7 +55,7 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
     @Autowired
     public void initHandlers() {
         // AnalysisHandlerの実装をここに追加
-        handlerMap.put("pattern-matching", new PatternMatchingHandler(patternRepository, serviceInfoService, messageSource, Locale.getDefault()));
+        handlerMap.put("pattern-matching", new PatternMatchingHandler(patternRepository, serviceInfoService, messageSource, Locale.getDefault(), defaultMaxUploadSize));
     }
 
     // DB認証用メソッド
@@ -114,6 +118,12 @@ public class AnalysisServiceImpl extends AnalysisServiceGrpc.AnalysisServiceImpl
         com.entangle.analysis.entity.ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
             .filter(info -> info.getAnalysisName().equals(request.getAnalysisName()))
             .findFirst().orElse(null);
+        if (serviceInfo == null) {
+            String msg = messageSource.getMessage("error.serviceinfo.notfound", new Object[]{request.getAnalysisName()}, locale);
+            responseObserver.onError(io.grpc.Status.NOT_FOUND.withDescription(msg).asRuntimeException());
+            logGrpcAccess("AnalysisService", "analyze", request, null, accessKey);
+            return;
+        }
         String handlerKey = null;
         if (serviceInfo != null) {
             handlerKey = serviceInfo.getAnalysisType(); // 例: pattern-matching

@@ -21,6 +21,7 @@ import com.entangle.analysis.entity.ServiceInfo;
 import com.entangle.analysis.repository.ImageDivisionInfoRepository;
 import com.entangle.analysis.service.AccessKeyService;
 import com.entangle.analysis.service.ServiceInfoService;
+import com.entangle.analysis.util.FileSizeFormatUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -39,16 +40,18 @@ public class ImageDivHandler {
     private final ImageDivisionInfoRepository imageDivisionInfoRepository;
     private static final String PNG_UID_KEYWORD = "UID";
     private final String encryptKey;
+    private final int defaultMaxUploadSize;
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ImageDivHandler.class);
 
     @Autowired
-    public ImageDivHandler(MessageSource messageSource, Locale locale, AccessKeyService accessKeyService, ServiceInfoService serviceInfoService, ImageDivisionInfoRepository imageDivisionInfoRepository, String encryptKey) {
+    public ImageDivHandler(MessageSource messageSource, Locale locale, AccessKeyService accessKeyService, ServiceInfoService serviceInfoService, ImageDivisionInfoRepository imageDivisionInfoRepository, String encryptKey, int defaultMaxUploadSize) {
         this.messageSource = messageSource;
         this.locale = locale;
         this.accessKeyService = accessKeyService;
         this.serviceInfoService = serviceInfoService;
         this.imageDivisionInfoRepository = imageDivisionInfoRepository;
         this.encryptKey = encryptKey;
+        this.defaultMaxUploadSize = defaultMaxUploadSize;
     }
 
     public void divideAndEmbed(ImageDivEmbedRequest request, StreamObserver<ImageDivEmbedResponse> responseObserver) {
@@ -65,6 +68,38 @@ public class ImageDivHandler {
         ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
             .filter(svcInfo -> analysisName != null && analysisName.equals(svcInfo.getAnalysisName()))
             .findFirst().orElse(null);
+        // --- アップロードサイズ制限チェック ---
+        int maxUploadSize = defaultMaxUploadSize;
+        if (serviceInfo != null) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+                if (node.has("max_upload_size")) {
+                    maxUploadSize = node.get("max_upload_size").asInt(defaultMaxUploadSize);
+                }
+            } catch (Exception e) {
+                log.warn("max_upload_size取得時のJSONパースエラー", e);
+            }
+        }
+        byte[] imageBytes = null;
+        try {
+            imageBytes = Base64.getDecoder().decode(request.getOriginalImageBase64());
+        } catch (Exception e) {
+            log.error("Base64デコード失敗", e);
+            String msg = messageSource.getMessage("error.image.decode", null, locale);
+            responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
+                .withDescription(msg)
+                .asRuntimeException());
+            return;
+        }
+        if (imageBytes.length > maxUploadSize) {
+            log.warn("アップロード画像サイズ超過: アップロード値 > 制限値", imageBytes.length, maxUploadSize);
+            String msg = messageSource.getMessage("error.upload.size", new Object[]{FileSizeFormatUtil.formatBytes(maxUploadSize, "MB")}, locale);
+            responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
+                .withDescription(msg)
+                .asRuntimeException());
+            return;
+        }
         int divisionNum = 0;
         if (serviceInfo != null) {
             try {
@@ -85,15 +120,15 @@ public class ImageDivHandler {
         }
         if (divisionNum <= 1) {
             log.error("divisionNumが不正です: {}", divisionNum);
+            String msg = messageSource.getMessage("error.division.num", new Object[]{divisionNum}, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                .withDescription("分割数（divisionNum）が不正です: " + divisionNum)
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         List<String> dividedImages = new ArrayList<>();
         try {
             // Base64デコード→OpenCV Mat
-            byte[] imageBytes = Base64.getDecoder().decode(request.getOriginalImageBase64());
             Mat img = opencv_imgcodecs.imdecode(new Mat(imageBytes), opencv_imgcodecs.IMREAD_COLOR);
             int width = img.cols();
             int height = img.rows();
@@ -122,8 +157,9 @@ public class ImageDivHandler {
             }
         } catch (Exception e) {
             log.error("画像分割失敗", e);
+            String msg = messageSource.getMessage("error.image.division", new Object[]{}, locale);
             responseObserver.onError(io.grpc.Status.INTERNAL
-                .withDescription("画像分割失敗: " + e.getMessage())
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
@@ -142,8 +178,9 @@ public class ImageDivHandler {
                 dividedImagesWithData.add(newBase64);
             } catch (Exception e) {
                 log.error("UID埋め込み失敗: part={}", i, e);
+                String msg = messageSource.getMessage("error.uid.embed", new Object[]{i}, locale);
                 responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("UID埋め込み失敗: part=" + i + " " + e.getMessage())
+                    .withDescription(msg)
                     .asRuntimeException());
                 return;
             }
@@ -169,8 +206,9 @@ public class ImageDivHandler {
                     info.setEmbedMetaBase64(encrypt(embedData));
                 } catch (Exception e) {
                     log.error("暗号化失敗", e);
+                    String msg = messageSource.getMessage("error.encrypt", new Object[]{e.getMessage()}, locale);
                     responseObserver.onError(io.grpc.Status.INTERNAL
-                        .withDescription("暗号化失敗: " + e.getMessage())
+                        .withDescription(msg)
                         .asRuntimeException());
                     return;
                 }
@@ -184,8 +222,9 @@ public class ImageDivHandler {
                     info.setEmbedMetaText(encrypt(embedData));
                 } catch (Exception e) {
                     log.error("暗号化失敗", e);
+                    String msg = messageSource.getMessage("error.encrypt", new Object[]{e.getMessage()}, locale);
                     responseObserver.onError(io.grpc.Status.INTERNAL
-                        .withDescription("暗号化失敗: " + e.getMessage())
+                        .withDescription(msg)
                         .asRuntimeException());
                     return;
                 }
@@ -204,7 +243,9 @@ public class ImageDivHandler {
                 if (node.has("tempDirPath")) {
                     tempDirPath = node.get("tempDirPath").asText();
                 }
-            } catch (Exception e) { /* ignore */ }
+            } catch (Exception e) {
+                log.warn("tempDirPath取得失敗", e);
+            }
         }
         if (tempDirPath != null && !dividedImages.isEmpty()) {
             String timeDir = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
@@ -240,8 +281,9 @@ public class ImageDivHandler {
         
         List<String> dividedImages = request.getDividedImagesList();
         if (dividedImages == null || dividedImages.isEmpty()) {
+            String msg = messageSource.getMessage("error.image.notfound", null, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                .withDescription("分割画像がありません")
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
@@ -275,21 +317,24 @@ public class ImageDivHandler {
             }
         }
         if (!allSame || uid == null) {
+            String msg = messageSource.getMessage("error.uid.mismatch", new Object[]{extractedUids}, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                .withDescription("全分割画像で同一UIDが取得できません: " + extractedUids)
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         ImageDivisionInfo info = imageDivisionInfoRepository.findByUid(uid);
         if (info == null) {
+            String msg = messageSource.getMessage("error.divinfo.notfound", new Object[]{uid}, locale);
             responseObserver.onError(io.grpc.Status.NOT_FOUND
-                .withDescription("分割情報が見つかりません: " + uid)
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         if (info.getDivisionNum() != dividedImages.size()) {
+            String msg = messageSource.getMessage("error.division.count.mismatch", new Object[]{info.getDivisionNum(), dividedImages.size()}, locale);
             responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
-                .withDescription("分割画像数が不一致です。DB保存値: " + info.getDivisionNum() + ", アップロード画像数: " + dividedImages.size() + "。画面の分割数設定やアップロード画像数をご確認ください。")
+                .withDescription(msg)
                 .asRuntimeException());
             return;
         }
@@ -319,7 +364,7 @@ public class ImageDivHandler {
                 if (jsonDivisionNum > 0) {
                     if (jsonDivisionNum != info.getDivisionNum() || jsonDivisionNum != dividedImages.size()) {
                         responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
-                            .withDescription("分割数不一致: JSON: " + jsonDivisionNum + ", DB: " + info.getDivisionNum() + ", アップロード: " + dividedImages.size())
+                            .withDescription(messageSource.getMessage("error.division.num.mismatch", new Object[]{jsonDivisionNum, info.getDivisionNum(), dividedImages.size()}, locale))
                             .asRuntimeException());
                         return;
                     }
@@ -351,7 +396,7 @@ public class ImageDivHandler {
             } catch (Exception e) {
                 log.error("復号化失敗", e);
                 responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("復号化失敗: " + e.getMessage())
+                    .withDescription(messageSource.getMessage("error.decrypt", new Object[]{e.getMessage()}, locale))
                     .asRuntimeException());
                 return;
             }
