@@ -1,14 +1,14 @@
 # AnalysisService
 gRPC + mTSLで解析系サービスを提供  
 管理機能 : Java Spring Bootサーバー + gRPCサーバー  
-クライアント(サンプル) : Flutter (Web、Windowsなど)
+クライアント(サンプル) : Flutter (Web、Android、Windows、Linux)
 
 AndroidにOpenCVをフルスペックで入れると  
 ファイルサイズ200MB超えるので、  
 gRPCサービスで解析処理を行うパターンを考慮
 
 [環境]  
-DB MariaDB(MySQL) 10.4.32  (GPL-2.0ライセンス問題対応ならPostgreSQL)
+DB MariaDB(MySQL) 10.4.32  (GPL-2.0ライセンス問題対応ならPostgreSQL)  
 JavaSDK 17  
 .Net 9 (C#)  
 Flutter 3.29.3  
