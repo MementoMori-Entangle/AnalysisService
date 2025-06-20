@@ -6,20 +6,6 @@
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
--------------------------------------------------------------------------------
-
-【追加事項／Additional Notice】
-
-本プロジェクトは、MySQL Connector/J 8.4.0（Copyright (c) 2008, 2024, Oracle and/or its affiliates）がGPL-2.0ライセンスで配布されているため、GPL-2.0ライセンスのもとで公開しています。
-
-MySQL Connector/J 8.4.0のライセンス詳細については、[MySQL Connector/J公式ページ](https://dev.mysql.com/downloads/connector/j/)や、配布物に含まれるLICENSEファイルをご参照ください。
-
-This project is licensed under GPL-2.0 because it uses MySQL Connector/J 8.4.0 (Copyright (c) 2008, 2024, Oracle and/or its affiliates), which is distributed under the GPL-2.0 license.
-
-For details about the license of MySQL Connector/J 8.4.0, please refer to the [official MySQL Connector/J page](https://dev.mysql.com/downloads/connector/j/) and the LICENSE file included in its distribution.
-
--------------------------------------------------------------------------------
-
                             Preamble
 
   The licenses for most software are designed to take away your
