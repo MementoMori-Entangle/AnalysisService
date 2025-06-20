@@ -196,6 +196,11 @@ Java Spring Boot
 | flyway-mysql                               | 10.14.0            | Apache-2.0            | https://search.maven.org/artifact/org.flywaydb/flyway-mysql/10.14.0/jar                                      |
 | flyway-core                                | 10.14.0            | Apache-2.0            | https://search.maven.org/artifact/org.flywaydb/flyway-core/10.14.0/jar                                       |
 
+本プロジェクトは、MySQL Connector/J 8.4.0（Copyright (c) 2008, 2024, Oracle and/or its affiliates）が  
+GPL-2.0ライセンスで配布されているため、GPL-2.0ライセンスのもとで公開しています。  
+MySQL Connector/J 8.4.0のライセンス詳細については、  
+[MySQL Connector/J公式ページ](https://dev.mysql.com/downloads/connector/j/)や、  
+配布物に含まれるLICENSEファイルをご参照ください。  
 javax.annotation:javax.annotation-apiのGPL-2.0はClasspath Exception付きですが、  
 mysql-connector-jがGPL-2.0のため、ライセンスを緩くするには、  
 PostgreSQL Licenseにするなどの対応が必要です。  
