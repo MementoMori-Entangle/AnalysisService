@@ -1,7 +1,10 @@
 package com.entangle.analysis.handler;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -11,8 +14,11 @@ import java.util.UUID;
 import javax.imageio.ImageIO;
 
 import org.bytedeco.opencv.global.opencv_imgcodecs;
+import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 
@@ -32,19 +38,35 @@ import analysis.AnalysisServiceImageDivOuterClass.ImageDivRestoreRequest;
 import analysis.AnalysisServiceImageDivOuterClass.ImageDivRestoreResponse;
 import io.grpc.stub.StreamObserver;
 
+/**
+ * 画像分割と埋め込みを行うgRPCサービスのハンドラークラス
+ */
 public class ImageDivHandler {
+    private static final Logger log = LoggerFactory.getLogger(ImageDivHandler.class);
+    private static final String PNG_UID_KEYWORD = "UID";
     private final MessageSource messageSource;
     private final Locale locale;
     private final AccessKeyService accessKeyService;
     private final ServiceInfoService serviceInfoService;
     private final ImageDivisionInfoRepository imageDivisionInfoRepository;
-    private static final String PNG_UID_KEYWORD = "UID";
     private final String encryptKey;
     private final int defaultMaxUploadSize;
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ImageDivHandler.class);
 
+    /**
+     * コンストラクタ
+     * @param messageSource メッセージソース
+     * @param locale ロケール
+     * @param accessKeyService アクセスキーサービス
+     * @param serviceInfoService サービス情報サービス
+     * @param imageDivisionInfoRepository 画像分割情報リポジトリ
+     * @param encryptKey 暗号化キー
+     * @param defaultMaxUploadSize デフォルトの最大アップロードサイズ（バイト単位）
+     */
     @Autowired
-    public ImageDivHandler(MessageSource messageSource, Locale locale, AccessKeyService accessKeyService, ServiceInfoService serviceInfoService, ImageDivisionInfoRepository imageDivisionInfoRepository, String encryptKey, int defaultMaxUploadSize) {
+    public ImageDivHandler(MessageSource messageSource, Locale locale,
+                        AccessKeyService accessKeyService, ServiceInfoService serviceInfoService,
+                        ImageDivisionInfoRepository imageDivisionInfoRepository,
+                        String encryptKey, int defaultMaxUploadSize) {
         this.messageSource = messageSource;
         this.locale = locale;
         this.accessKeyService = accessKeyService;
@@ -54,32 +76,45 @@ public class ImageDivHandler {
         this.defaultMaxUploadSize = defaultMaxUploadSize;
     }
 
-    public void divideAndEmbed(ImageDivEmbedRequest request, StreamObserver<ImageDivEmbedResponse> responseObserver) {
+    /**
+     * 画像を分割し、UIDを埋め込んだ画像を生成するメソッド
+     * @param request 画像分割と埋め込みリクエスト
+     * @param responseObserver レスポンスオブザーバー
+     */
+    public void divideAndEmbed(ImageDivEmbedRequest request,
+                            StreamObserver<ImageDivEmbedResponse> responseObserver) {
         String accessKey = request.getAccessKey();
         if (accessKey == null || !accessKeyService.isValid(accessKey)) {
-            String msg = messageSource.getMessage("error.accesskey.invalid", null, locale);
+            String msg = messageSource.getMessage("error.accesskey.invalid",
+                                    null, locale);
             responseObserver.onError(io.grpc.Status.INTERNAL
                 .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         String analysisName = request.getAnalysisName();
-        // クライアントからのanalysisTypeは実際にはanalysisNameが設定されている
         ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
-            .filter(svcInfo -> analysisName != null && analysisName.equals(svcInfo.getAnalysisName()))
+            .filter(svcInfo -> analysisName != null &&
+                                    analysisName.equals(svcInfo.getAnalysisName()))
             .findFirst().orElse(null);
-        // --- アップロードサイズ制限チェック ---
+        if (serviceInfo == null) {
+            log.warn("ServiceInfoが見つかりません: analysisName={}", analysisName);
+            String msg = messageSource.getMessage("unsupported.analysisName",
+                                        new Object[]{analysisName}, locale);
+            responseObserver.onError(io.grpc.Status.NOT_FOUND
+                .withDescription(msg)
+                .asRuntimeException());
+            return;
+        }
         int maxUploadSize = defaultMaxUploadSize;
-        if (serviceInfo != null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
-                if (node.has("max_upload_size")) {
-                    maxUploadSize = node.get("max_upload_size").asInt(defaultMaxUploadSize);
-                }
-            } catch (Exception e) {
-                log.warn("max_upload_size取得時のJSONパースエラー", e);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+            if (node.has("max_upload_size")) {
+                maxUploadSize = node.get("max_upload_size").asInt(defaultMaxUploadSize);
             }
+        } catch (Exception e) {
+            log.warn("max_upload_size取得時のJSONパースエラー", e);
         }
         byte[] imageBytes = null;
         try {
@@ -93,34 +128,35 @@ public class ImageDivHandler {
             return;
         }
         if (imageBytes.length > maxUploadSize) {
-            log.warn("アップロード画像サイズ超過: アップロード値 > 制限値", imageBytes.length, maxUploadSize);
-            String msg = messageSource.getMessage("error.upload.size", new Object[]{FileSizeFormatUtil.formatBytes(maxUploadSize, "MB")}, locale);
+            log.warn("アップロード画像サイズ超過: アップロード値 > 制限値",
+                    imageBytes.length, maxUploadSize);
+            String msg = messageSource.getMessage("error.upload.size",
+                                        new Object[]{FileSizeFormatUtil.formatBytes(
+                                                        maxUploadSize, "MB")}, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         int divisionNum = 0;
-        if (serviceInfo != null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
-                log.info("解析名: {} のServiceInfo JSON: {}", analysisName, serviceInfo.getDataProcessInfoJson());
-                if (node.has("divisionNum")) {
-                    divisionNum = node.get("divisionNum").asInt(2);
-                    log.info("divisionNum取得: {}", divisionNum);
-                } else {
-                    log.warn("divisionNumがJSONに存在しません");
-                }
-            } catch (Exception e) {
-                log.error("divisionNum取得時のJSONパースエラー", e);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+            log.info("解析名: {} のServiceInfo JSON: {}", analysisName,
+                        serviceInfo.getDataProcessInfoJson());
+            if (node.has("divisionNum")) {
+                divisionNum = node.get("divisionNum").asInt(divisionNum);
+                log.info("divisionNum取得: {}", divisionNum);
+            } else {
+                log.warn("divisionNumがJSONに存在しません");
             }
-        } else {
-            log.warn("ServiceInfoが見つかりません: analysisName={}", analysisName);
+        } catch (Exception e) {
+            log.error("divisionNum取得時のJSONパースエラー", e);
         }
         if (divisionNum <= 1) {
             log.error("divisionNumが不正です: {}", divisionNum);
-            String msg = messageSource.getMessage("error.division.num", new Object[]{divisionNum}, locale);
+            String msg = messageSource.getMessage("error.division.num",
+                                        new Object[]{divisionNum}, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription(msg)
                 .asRuntimeException());
@@ -157,7 +193,8 @@ public class ImageDivHandler {
             }
         } catch (Exception e) {
             log.error("画像分割失敗", e);
-            String msg = messageSource.getMessage("error.image.division", new Object[]{}, locale);
+            String msg = messageSource.getMessage("error.image.division",
+                                        new Object[]{}, locale);
             responseObserver.onError(io.grpc.Status.INTERNAL
                 .withDescription(msg)
                 .asRuntimeException());
@@ -172,13 +209,15 @@ public class ImageDivHandler {
         for (int i = 0; i < dividedImages.size(); i++) {
             String base64 = dividedImages.get(i);
             try {
-                BufferedImage img = ImageIO.read(new java.io.ByteArrayInputStream(Base64.getDecoder().decode(base64)));
+                BufferedImage img = ImageIO.read(new ByteArrayInputStream(
+                                                Base64.getDecoder().decode(base64)));
                 // バイナリ方式でtEXtチャンクにUIDを書き込む
                 String newBase64 = writeUidToPngBase64BinaryEdit(img, uid);
                 dividedImagesWithData.add(newBase64);
             } catch (Exception e) {
                 log.error("UID埋め込み失敗: part={}", i, e);
-                String msg = messageSource.getMessage("error.uid.embed", new Object[]{i}, locale);
+                String msg = messageSource.getMessage("error.uid.embed",
+                                            new Object[]{i}, locale);
                 responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription(msg)
                     .asRuntimeException());
@@ -206,7 +245,8 @@ public class ImageDivHandler {
                     info.setEmbedMetaBase64(encrypt(embedData));
                 } catch (Exception e) {
                     log.error("暗号化失敗", e);
-                    String msg = messageSource.getMessage("error.encrypt", new Object[]{e.getMessage()}, locale);
+                    String msg = messageSource.getMessage("error.encrypt",
+                                                new Object[]{e.getMessage()}, locale);
                     responseObserver.onError(io.grpc.Status.INTERNAL
                         .withDescription(msg)
                         .asRuntimeException());
@@ -222,7 +262,8 @@ public class ImageDivHandler {
                     info.setEmbedMetaText(encrypt(embedData));
                 } catch (Exception e) {
                     log.error("暗号化失敗", e);
-                    String msg = messageSource.getMessage("error.encrypt", new Object[]{e.getMessage()}, locale);
+                    String msg = messageSource.getMessage("error.encrypt",
+                                                new Object[]{e.getMessage()}, locale);
                     responseObserver.onError(io.grpc.Status.INTERNAL
                         .withDescription(msg)
                         .asRuntimeException());
@@ -236,24 +277,23 @@ public class ImageDivHandler {
         imageDivisionInfoRepository.save(info);
         // --- 分割画像をtempDirPath/日時/に保存 ---
         String tempDirPath = null;
-        if (serviceInfo != null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
-                if (node.has("tempDirPath")) {
-                    tempDirPath = node.get("tempDirPath").asText();
-                }
-            } catch (Exception e) {
-                log.warn("tempDirPath取得失敗", e);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+            if (node.has("tempDirPath")) {
+                tempDirPath = node.get("tempDirPath").asText();
             }
+        } catch (Exception e) {
+            log.warn("tempDirPath取得失敗", e);
         }
         if (tempDirPath != null && !dividedImages.isEmpty()) {
-            String timeDir = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
+            String timeDir = LocalDateTime.now().format(
+                                        DateTimeFormatter.ofPattern("yyyyMMdd_HHmmssSSS"));
             java.nio.file.Path outDir = java.nio.file.Paths.get(tempDirPath, timeDir);
             try {
                 java.nio.file.Files.createDirectories(outDir);
                 for (int i = 0; i < dividedImagesWithData.size(); i++) {
-                    byte[] imgBytes = java.util.Base64.getDecoder().decode(dividedImagesWithData.get(i));
+                    byte[] imgBytes = Base64.getDecoder().decode(dividedImagesWithData.get(i));
                     java.nio.file.Path outFile = outDir.resolve("part_" + i + ".png");
                     java.nio.file.Files.write(outFile, imgBytes);
                 }
@@ -269,7 +309,13 @@ public class ImageDivHandler {
         responseObserver.onCompleted();
     }
 
-    public void restoreEmbedData(ImageDivRestoreRequest request, StreamObserver<ImageDivRestoreResponse> responseObserver) {
+    /**
+     * 埋め込まれたデータを復元するメソッド
+     * @param request 復元リクエスト
+     * @param responseObserver レスポンスオブザーバー
+     */
+    public void restoreEmbedData(ImageDivRestoreRequest request,
+                                StreamObserver<ImageDivRestoreResponse> responseObserver) {
         String accessKey = request.getAccessKey();
         if (accessKey == null || !accessKeyService.isValid(accessKey)) {
             String msg = messageSource.getMessage("error.accesskey.invalid", null, locale);
@@ -278,10 +324,24 @@ public class ImageDivHandler {
                 .asRuntimeException());
             return;
         }
-        
+        String analysisName = request.getAnalysisName();
+        ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
+            .filter(svcInfo -> analysisName != null &&
+                                    analysisName.equals(svcInfo.getAnalysisName()))
+            .findFirst().orElse(null);
+        if (serviceInfo == null) {
+            log.warn("ServiceInfoが見つかりません: analysisName={}", analysisName);
+            String msg = messageSource.getMessage("unsupported.analysisName",
+                                        new Object[]{analysisName}, locale);
+            responseObserver.onError(io.grpc.Status.NOT_FOUND
+                .withDescription(msg)
+                .asRuntimeException());
+            return;
+        }
         List<String> dividedImages = request.getDividedImagesList();
         if (dividedImages == null || dividedImages.isEmpty()) {
-            String msg = messageSource.getMessage("error.image.notfound", null, locale);
+            String msg = messageSource.getMessage("error.image.notfound",
+                                    null, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription(msg)
                 .asRuntimeException());
@@ -317,7 +377,8 @@ public class ImageDivHandler {
             }
         }
         if (!allSame || uid == null) {
-            String msg = messageSource.getMessage("error.uid.mismatch", new Object[]{extractedUids}, locale);
+            String msg = messageSource.getMessage("error.uid.mismatch",
+                                        new Object[]{extractedUids}, locale);
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription(msg)
                 .asRuntimeException());
@@ -325,14 +386,17 @@ public class ImageDivHandler {
         }
         ImageDivisionInfo info = imageDivisionInfoRepository.findByUid(uid);
         if (info == null) {
-            String msg = messageSource.getMessage("error.divinfo.notfound", new Object[]{uid}, locale);
+            String msg = messageSource.getMessage("error.divinfo.notfound",
+                                        new Object[]{uid}, locale);
             responseObserver.onError(io.grpc.Status.NOT_FOUND
                 .withDescription(msg)
                 .asRuntimeException());
             return;
         }
         if (info.getDivisionNum() != dividedImages.size()) {
-            String msg = messageSource.getMessage("error.division.count.mismatch", new Object[]{info.getDivisionNum(), dividedImages.size()}, locale);
+            String msg = messageSource.getMessage("error.division.count.mismatch",
+                                        new Object[]{info.getDivisionNum(),
+                                                dividedImages.size()},locale);
             responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
                 .withDescription(msg)
                 .asRuntimeException());
@@ -349,46 +413,40 @@ public class ImageDivHandler {
             embedDataTypeRestored = EmbedDataType.TEXT;
         }
         // ServiceInfoのJSONからdivisionNumを取得し、DB・アップロード画像数と一致しているか確認
-        String analysisName = request.getAnalysisName();
-        ServiceInfo serviceInfo = serviceInfoService.findAll().stream()
-            .filter(svcInfo -> analysisName != null && analysisName.equals(svcInfo.getAnalysisName()))
-            .findFirst().orElse(null);
-        if (serviceInfo != null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
-                int jsonDivisionNum = -1;
-                if (node.has("divisionNum")) {
-                    jsonDivisionNum = node.get("divisionNum").asInt(-1);
-                }
-                if (jsonDivisionNum > 0) {
-                    if (jsonDivisionNum != info.getDivisionNum() || jsonDivisionNum != dividedImages.size()) {
-                        responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
-                            .withDescription(messageSource.getMessage("error.division.num.mismatch", new Object[]{jsonDivisionNum, info.getDivisionNum(), dividedImages.size()}, locale))
-                            .asRuntimeException());
-                        return;
-                    }
-                } else {
-                    log.warn("ServiceInfo JSONにdivisionNumが存在しません or 不正値");
-                }
-            } catch (Exception e) {
-                log.error("ServiceInfo JSONからdivisionNum取得時のエラー", e);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+            int jsonDivisionNum = -1;
+            if (node.has("divisionNum")) {
+                jsonDivisionNum = node.get("divisionNum").asInt(-1);
             }
-        } else {
-            log.warn("ServiceInfoが見つかりません: analysisName={}", analysisName);
+            if (jsonDivisionNum > 0) {
+                if (jsonDivisionNum != info.getDivisionNum()
+                    || jsonDivisionNum != dividedImages.size()) {
+                    responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
+                        .withDescription(messageSource.getMessage("error.division.num.mismatch",
+                                                        new Object[]{jsonDivisionNum,
+                                                            info.getDivisionNum(),
+                                                            dividedImages.size()}, locale))
+                        .asRuntimeException());
+                    return;
+                }
+            } else {
+                log.warn("ServiceInfo JSONにdivisionNumが存在しません or 不正値");
+            }
+        } catch (Exception e) {
+            log.error("ServiceInfo JSONからdivisionNum取得時のエラー", e);
         }
         // --- embedDataが暗号化されている場合は復号化 ---
         boolean encrypt = false;
-        if (serviceInfo != null) {
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
-                if (node.has("encryption")) {
-                    encrypt = node.get("encryption").asBoolean(false);
-                }
-            } catch (Exception e) {
-                log.warn("encryptionフラグ取得失敗", e);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(serviceInfo.getDataProcessInfoJson());
+            if (node.has("encryption")) {
+                encrypt = node.get("encryption").asBoolean(false);
             }
+        } catch (Exception e) {
+            log.warn("encryptionフラグ取得失敗", e);
         }
         if (encrypt && embedDataRestored != null && !embedDataRestored.isEmpty()) {
             try {
@@ -396,7 +454,8 @@ public class ImageDivHandler {
             } catch (Exception e) {
                 log.error("復号化失敗", e);
                 responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription(messageSource.getMessage("error.decrypt", new Object[]{e.getMessage()}, locale))
+                    .withDescription(messageSource.getMessage("error.decrypt",
+                                                    new Object[]{e.getMessage()}, locale))
                     .asRuntimeException());
                 return;
             }
@@ -409,12 +468,16 @@ public class ImageDivHandler {
         responseObserver.onCompleted();
     }
 
-    // OpenCV Mat→BufferedImage変換
+    /**
+     * OpenCV Mat→BufferedImage変換
+     * @param mat 変換元のOpenCV Matオブジェクト
+     * @return 変換後のBufferedImageオブジェクト
+     */
     private BufferedImage matToBufferedImage(Mat mat) {
         // BGR→RGB変換
         Mat rgbMat = new Mat();
         if (mat.channels() == 3) {
-            org.bytedeco.opencv.global.opencv_imgproc.cvtColor(mat, rgbMat, org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB);
+            opencv_imgproc.cvtColor(mat, rgbMat, opencv_imgproc.COLOR_BGR2RGB);
         } else {
             rgbMat = mat.clone();
         }
@@ -427,7 +490,12 @@ public class ImageDivHandler {
         return image;
     }
 
-    // PNGバイナリにtEXtチャンクでUIDを直接埋め込むユーティリティ
+    /**
+     * PNG画像にUIDをtEXtチャンクとして埋め込むメソッド
+     * @param image 埋め込み対象のBufferedImage
+     * @param uid 埋め込むUID
+     * @return 埋め込み後のPNG画像をBase64エンコードした文字列
+     */
     private String writeUidToPngBase64BinaryEdit(BufferedImage image, String uid) throws Exception {
         // まずImageIOでPNGバイナリを出力
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -483,12 +551,17 @@ public class ImageDivHandler {
         return Base64.getEncoder().encodeToString(out.toByteArray());
     }
 
-    // PNGバイナリからtEXtチャンクのUIDを直接抽出する
+    /**
+     * PNG画像のBase64バイナリからUIDを抽出するメソッド
+     * @param base64Png PNG画像のBase64エンコード文字列
+     * @return 抽出したUID、または見つからなければnull
+     */
     private String extractUidFromPngBase64Binary(String base64Png) throws Exception {
         byte[] bytes = Base64.getDecoder().decode(base64Png);
         int pos = 8; // PNGヘッダ
         while (pos < bytes.length) {
-            int len = ((bytes[pos] & 0xFF) << 24) | ((bytes[pos+1] & 0xFF) << 16) | ((bytes[pos+2] & 0xFF) << 8) | (bytes[pos+3] & 0xFF);
+            int len = ((bytes[pos] & 0xFF) << 24) | ((bytes[pos+1] & 0xFF) << 16)
+                        | ((bytes[pos+2] & 0xFF) << 8) | (bytes[pos+3] & 0xFF);
             String type = new String(bytes, pos+4, 4, "ISO-8859-1");
             if ("tEXt".equals(type)) {
                 // tEXtチャンクのデータ部をパース
@@ -499,8 +572,10 @@ public class ImageDivHandler {
                     if (bytes[i] == 0) { sep = i; break; }
                 }
                 if (sep > 0) {
-                    String keyword = new String(bytes, dataStart, sep - dataStart, "ISO-8859-1");
-                    String value = new String(bytes, sep + 1, dataEnd - (sep + 1), "ISO-8859-1");
+                    String keyword = new String(bytes, dataStart, sep - dataStart,
+                                            "ISO-8859-1");
+                    String value = new String(bytes, sep + 1, dataEnd - (sep + 1),
+                                            "ISO-8859-1");
                     if (PNG_UID_KEYWORD.equals(keyword)) {
                         return value;
                     }
@@ -511,7 +586,11 @@ public class ImageDivHandler {
         return null;
     }
 
-    // AES暗号化ユーティリティ
+    /**
+     * AES暗号化を行うメソッド
+     * @param plainText 暗号化する平文
+     * @return 暗号化されたBase64エンコード文字列
+     */
     private String encrypt(String plainText) throws Exception {
         javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
         byte[] keyBytes = java.util.Arrays.copyOf(encryptKey.getBytes("UTF-8"), 16);
@@ -526,6 +605,12 @@ public class ImageDivHandler {
         System.arraycopy(encrypted, 0, result, ivBytes.length, encrypted.length);
         return java.util.Base64.getEncoder().encodeToString(result);
     }
+
+    /**
+     * AES復号化を行うメソッド
+     * @param cipherText 暗号化されたBase64エンコード文字列
+     * @return 復号化された平文
+     */
     private String decrypt(String cipherText) throws Exception {
         byte[] all = java.util.Base64.getDecoder().decode(cipherText);
         byte[] ivBytes = java.util.Arrays.copyOfRange(all, 0, 16);

@@ -15,12 +15,42 @@
         .result-table { width: 100%; border-collapse: collapse; margin-top: 2em; }
         .result-table th, .result-table td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
         .result-table th { background: #f0f0f8; }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ローディング用スタイル */
+        #loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #loading div {
+            border: 6px solid #eee;
+            border-top: 6px solid #1976d2;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h2 th:text="#{analysis.test.title}">AnalysisService テスト</h2>
     <form id="analysisForm" th:action="@{'/admin/analysis-test'}" method="post" enctype="multipart/form-data">
+        <!-- CSRFトークンを追加 -->
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div th:if="${error}" class="error" th:text="${error}"></div>
         <div th:if="${message}" class="error" th:text="${message}"></div>
         <div>
@@ -51,10 +81,125 @@
             });
             </script>
         </div>
-        <div>
+        <div id="imageFileDiv">
             <label for="imageFile" th:text="#{analysis.test.imageFile.label}">画像ファイルを選択:</label>
             <input type="file" id="imageFile" name="imageFile" accept="image/*" required />
         </div>
+        <div id="videoFileDiv" style="display:none;">
+            <label for="videoFile">動画ファイルを選択:</label>
+            <input type="file" id="videoFile" name="videoFile" accept="video/*" />
+        </div>
+        <div id="videoSubliminalFields" style="display:none; flex-direction:column; gap:0.5em;">
+            <label style="font-weight:bold;">サブミナル挿入パラメータ（複数追加可）:</label>
+            <div id="subliminalInserts">
+                <div class="subliminalInsert" style="display:block; margin-bottom:1em; padding:0.7em 0; border-bottom:1px solid #eee;">
+                    <div style="margin-bottom:0.5em;">
+                        <label>挿入画像ファイル: <input type="file" name="insertImageFiles" accept="image/*" required style="display:inline-block; width:auto;"></label>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:1em; align-items:center;">
+                        <label>フレーム位置: <input type="number" name="frameIndexes" min="0" required style="width:6em;" /></label>
+                        <label>表示フレーム数: <input type="number" name="durationFrames" min="1" required style="width:6em;" /></label>
+                        <div style="display:flex; gap:0.5em; align-items:center;">
+                            <label>X: <input type="number" name="insertX" min="0" required style="width:6em;" /></label>
+                            <label>Y: <input type="number" name="insertY" min="0" required style="width:6em;" /></label>
+                        </div>
+                        <button type="button" onclick="this.parentNode.parentNode.remove();" style="margin-left:auto;">削除</button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="addSubliminalInsert();" style="width:fit-content;">パラメータ追加</button>
+            <div style="margin-top:1em;">
+                <label for="videoFileSubliminal">動画ファイルを選択:</label>
+                <input type="file" id="videoFileSubliminal" name="videoFile" accept="video/*" required />
+            </div>
+            <div id="subliminalButtons" style="visibility:hidden; margin-top:1em;">
+                <button type="submit" class="btn" id="btnSubliminalGenerate"
+                  onclick="document.getElementById('analysisForm').action='/admin/analysis-test/video-subliminal-generate'; return true;">
+                  サブミナル生成
+                </button>
+            </div>
+        </div>
+        <script>
+        function addSubliminalInsert() {
+            var div = document.createElement('div');
+            div.className = 'subliminalInsert';
+            div.style = 'display:block; margin-bottom:1em; padding:0.7em 0; border-bottom:1px solid #eee;';
+            div.innerHTML = `
+                <div style=\"margin-bottom:0.5em;\">
+                    <label>挿入画像ファイル: <input type=\"file\" name=\"insertImageFiles\" accept=\"image/*\" required style=\"display:inline-block; width:auto;\"></label>
+                </div>
+                <div style=\"display:flex; flex-wrap:wrap; gap:1em; align-items:center;\">
+                    <label>フレーム位置: <input type=\"number\" name=\"frameIndexes\" min=\"0\" required style=\"width:6em;\" /></label>
+                    <label>表示フレーム数: <input type=\"number\" name=\"durationFrames\" min=\"1\" required style=\"width:6em;\" /></label>
+                    <div style=\"display:flex; gap:0.5em; align-items:center;\">
+                        <label>X: <input type=\"number\" name=\"insertX\" min=\"0\" required style=\"width:6em;\" /></label>
+                        <label>Y: <input type=\"number\" name=\"insertY\" min=\"0\" required style=\"width:6em;\" /></label>
+                    </div>
+                    <button type=\"button\" onclick=\"this.parentNode.parentNode.remove();\" style=\"margin-left:auto;\">削除</button>
+                </div>
+            `;
+            document.getElementById('subliminalInserts').appendChild(div);
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            var sel = document.getElementById('analysisType');
+            var imageDiv = document.getElementById('imageFileDiv');
+            var videoDiv = document.getElementById('videoFileDiv');
+            var videoSubliminalDiv = document.getElementById('videoSubliminalFields');
+            var imageInput = document.getElementById('imageFile');
+            var videoInput = document.getElementById('videoFile');
+            var videoFileSubliminal = document.getElementById('videoFileSubliminal');
+            var subButtons = document.getElementById('subliminalButtons');
+            var btnDefault = document.getElementById('btnDefaultSubmit');
+            var form = document.getElementById('analysisForm');
+            var defaultSubmit = document.querySelector('button[type="submit"].btn');
+            function updateFileInputs() {
+                var val = sel.value || '';
+                var showSubliminal = val.includes('サブミナル') || val.toLowerCase().includes('subliminal');
+                if (showSubliminal) {
+                    imageDiv.style.display = 'none';
+                    imageInput.removeAttribute('required');
+                    videoDiv.style.display = 'none';
+                    videoInput.removeAttribute('required');
+                    videoInput.setAttribute('name', ''); // ← ここでnameを空に
+                    videoSubliminalDiv.style.display = 'flex';
+                    videoFileSubliminal.setAttribute('required', 'required');
+                    var inserts = document.querySelectorAll('.subliminalInsert');
+                    inserts.forEach(function(div) {
+                        div.querySelectorAll('input').forEach(function(inp) { inp.setAttribute('required', 'required'); });
+                    });
+                } else {
+                    imageDiv.style.display = '';
+                    imageInput.setAttribute('required', 'required');
+                    videoDiv.style.display = 'none';
+                    videoInput.removeAttribute('required');
+                    videoInput.setAttribute('name', 'videoFile'); // ← ここでnameを戻す
+                    videoSubliminalDiv.style.display = 'none';
+                    videoFileSubliminal.removeAttribute('required');
+                    var inserts = document.querySelectorAll('.subliminalInsert');
+                    inserts.forEach(function(div) {
+                        div.querySelectorAll('input').forEach(function(inp) { inp.removeAttribute('required'); });
+                    });
+                }
+            }
+            function updateSubliminalButtons() {
+                var val = sel.value || '';
+                var showSubliminal = val.includes('サブミナル') || val.toLowerCase().includes('subliminal');
+                if (showSubliminal) {
+                    subButtons.style.visibility = 'visible';
+                    btnDefault.style.display = 'none';
+                } else {
+                    subButtons.style.visibility = 'hidden';
+                    btnDefault.style.display = '';
+                }
+            }
+            sel.addEventListener('change', function() {
+                updateFileInputs();
+                updateSubliminalButtons();
+            });
+            updateFileInputs();
+            updateSubliminalButtons();
+        });
+        </script>
         <div id="embedDataFields" style="display:none;">
             <label for="embedDataType">埋め込みデータ種別:</label>
             <select id="embedDataType" name="embedDataType">
@@ -77,7 +222,7 @@
             <button type="submit" class="btn" id="btnRestore">分割画像から復号</button>
         </div>
         <input type="hidden" name="accessKey" th:value="${accessKey}" />
-        <button type="submit" class="btn" th:text="#{analysis.test.run.button}">解析実行</button>
+        <button type="submit" class="btn" id="btnDefaultSubmit" th:text="#{analysis.test.run.button}">解析実行</button>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             var sel = document.getElementById('analysisType');
@@ -164,9 +309,72 @@
             <span style="margin-left:1em;" th:text="#{analysis.test.height}">高さ: </span><span th:text="${imageHeight}"></span>
         </div>
     </div>
+    <div th:if="${processedVideoBase64 != null}">
+        <h3>生成動画プレビュー</h3>
+        <video id="subliminalVideo" controls style="max-width:100%; max-height:320px; border:1px solid #ccc; background:#fafaff;">
+            <source th:src="@{'data:video/mp4;base64,' + ${processedVideoBase64}}" type="video/mp4" />
+            お使いのブラウザは video タグに対応していません。
+        </video>
+        <div style="margin-top:1em;">
+            <a th:href="@{'data:video/mp4;base64,' + ${processedVideoBase64}}" download="subliminal_result.mp4" class="btn">動画ダウンロード</a>
+        </div>
+    </div>
     <div style="margin-top: 2.5em; text-align: right;">
         <a th:href="@{'/admin'}" class="btn" style="background: #888; margin-left: 0.5em;" th:text="#{analysis.test.backToAdmin}">管理画面トップへ戻る</a>
     </div>
+
+    <!-- サブミナル検出専用フォーム（既存フォームの下に独立して追加） -->
+    <form id="subliminalCheckForm" action="/admin/analysis-test/video-subliminal-check" method="post" enctype="multipart/form-data" style="margin-top:2.5em; background:#f8fafd; border:1px solid #dde; border-radius:8px; padding:1.5em;">
+        <h3 style="margin-top:0;">サブミナル検出テスト</h3>
+        <div style="margin-bottom:1em;">
+            <label for="subliminalAnalysisName">解析種別を選択:</label>
+            <select id="subliminalAnalysisName" name="analysisName" required style="width:auto; min-width:180px;">
+                <option th:each="type : ${analysisTypes}"
+                        th:if="${type.type} == 'video-subliminal'"
+                        th:value="${type.displayName}" th:text="${type.displayName}"></option>
+            </select>
+        </div>
+        <div style="margin-bottom:1em;">
+            <label for="videoFileSubliminalCheck">動画ファイルを選択:</label>
+            <input type="file" id="videoFileSubliminalCheck" name="videoFile" accept="video/*" required />
+        </div>
+        <input type="hidden" name="accessKey" th:value="${accessKey}" />
+        <!-- CSRFトークンを追加 -->
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <button type="submit" class="btn">サブミナル検出</button>
+    </form>
+    <div th:if="${subliminalCheckResult != null}">
+        <h4>サブミナル検出結果</h4>
+        <div th:text="${subliminalCheckResult}"></div>
+    </div>
+    <div th:if="${detectedFrames != null}">
+        <h4>検出フレーム画像</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:1em;">
+            <div th:each="f : ${detectedFrames}" style="text-align:center;">
+                <div>フレーム: <span th:text="${f.frameIndex}"></span></div>
+                <img th:src="@{'data:image/png;base64,' + ${f.imageBase64}}" style="max-width:120px; max-height:90px; border:1px solid #ccc; background:#fafaff;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- ローディング表示 -->
+    <div id="loading" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(255,255,255,0.7); z-index:9999; align-items:center; justify-content:center;">
+        <div style="border:6px solid #eee; border-top:6px solid #1976d2; border-radius:50%; width:48px; height:48px; animation:spin 1s linear infinite;"></div>
+    </div>
 </div>
+<script>
+    // ローディング表示制御
+    document.addEventListener('DOMContentLoaded', function() {
+        var loading = document.getElementById('loading');
+        var forms = [document.getElementById('analysisForm'), document.getElementById('subliminalCheckForm')];
+        forms.forEach(function(form) {
+            if(form) {
+                form.addEventListener('submit', function() {
+                    loading.style.display = 'flex';
+                });
+            }
+        });
+    });
+    </script>
 </body>
 </html>
