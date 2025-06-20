@@ -1,0 +1,55 @@
+﻿syntax = "proto3";
+
+package analysis;
+
+option java_package = "analysis";
+option java_outer_classname = "AnalysisServiceVideoSubliminalOuterClass";
+
+// サブミナル生成リクエスト
+message VideoSubliminalGenerateRequest {
+  string access_key = 1;
+  bytes video_file = 2;
+  repeated SubliminalImageInsert inserts = 3;
+  string analysis_name = 4;
+}
+
+// 差し込む画像とフレーム位置
+message SubliminalImageInsert {
+  bytes image_file = 1;
+  int32 frame_index = 2;
+  int32 duration_frames = 3; // 何フレーム表示するか
+  int32 x = 4; // 画像のx座標
+  int32 y = 5; // 画像のy座標
+}
+
+// サブミナル生成レスポンス
+message VideoSubliminalGenerateResponse {
+  bytes processed_video_file = 1;
+  string message = 2;
+}
+
+// サブミナルチェックリクエスト
+message VideoSubliminalCheckRequest {
+  string access_key = 1;
+  bytes video_file = 2;
+  string analysis_name = 3;
+}
+
+// サブミナル検出結果
+message SubliminalDetected {
+  int32 frame_index = 1;
+  bytes detected_image = 2;
+}
+
+// サブミナルチェックレスポンス
+message VideoSubliminalCheckResponse {
+  repeated SubliminalDetected detected = 1;
+  string message = 2;
+}
+
+service VideoSubliminalService {
+  // サブミナル生成
+  rpc GenerateSubliminal (VideoSubliminalGenerateRequest) returns (VideoSubliminalGenerateResponse);
+  // サブミナルチェック
+  rpc CheckSubliminal (VideoSubliminalCheckRequest) returns (VideoSubliminalCheckResponse);
+}

@@ -11,3 +11,9 @@ analysis-types:
       { "tempDirPath": "/path/to/dir", "divisionName": "4Division",
       "divisionNum": 4, "max_upload_size": 2048000, "encryption": true,
       "release": true, "enabled": true }
+  - id: video-subliminal
+    label: 動画サブリミナル
+    jsonExample: |
+      { "tempDirPath": "/path/to/dir", "subliminalName": "Subliminal1",
+        "video_max_upload_size": 31457280, "image_max_upload_size": 2048000, "image_insert_num": 2,
+        "synthesis": false, "threshold": 50,"max_detected": 3,"release": true, "enabled": true }
